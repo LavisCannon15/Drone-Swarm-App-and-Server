@@ -25,11 +25,19 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
 
+/// Generates deterministic GPS positions for desktop/CI usage.
 class SimulatedGPSService {
+  // ----- Singleton -----------------------------------------------------------
+  static final SimulatedGPSService _instance = SimulatedGPSService._internal();
+  factory SimulatedGPSService() => _instance;
+  SimulatedGPSService._internal() {
+    _init();
+  }
+
   double latitude = -35.3631723;
   double longitude = 149.1652375;
   double speed = 1.0;                  // meters per second
-  final double maxDistance = 20.0;     // total travel range
+  final double maxDistance = 20.0;
 
   bool isStationary = false;
 
@@ -37,9 +45,9 @@ class SimulatedGPSService {
   int _direction = 1;                  // 1 = north, -1 = south
   static const double METERS_PER_DEGREE_LAT = 111139.0;
 
-  final WebSocketService _webSocketService = WebSocketService();
-  final StreamController<Map<String, dynamic>> _locationStreamController =
-      StreamController.broadcast();
+  final WebSocketService _ws = WebSocketService();
+  final _locationStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get locationStream =>
       _locationStreamController.stream;
 
@@ -52,10 +60,7 @@ class SimulatedGPSService {
   double _swapPositionSpeed = 1.0;
   String _selectedMode = 'Normal';
 
-  SimulatedGPSService() {
-    _init();                     // ensures settings load before broadcasting
-  }
-
+  // ----- Initialisation -----------------------------------------------------
   Future<void> _init() async {
     await _loadPreferences();
     _start();
@@ -74,7 +79,7 @@ class SimulatedGPSService {
     _selectedMode = prefs.getString('selectedMode') ?? 'Normal';
   }
 
-  /// Allow callers to refresh cached preferences and await completion.
+  /// Reload preferences after they change.
   Future<void> refreshSettings() => _loadPreferences();
 
   void _start() {
@@ -84,7 +89,6 @@ class SimulatedGPSService {
         final deltaLat = (_direction * speed) / METERS_PER_DEGREE_LAT;
         latitude += deltaLat;
         _distanceTraveled += speed;
-
         if (_distanceTraveled >= maxDistance) {
           _direction *= -1;
           _distanceTraveled = 0.0;
@@ -94,7 +98,7 @@ class SimulatedGPSService {
       final locationData = {
         'latitude': latitude,
         'longitude': longitude,
-        'speed': isStationary ? 0.0 : speed, // always non‑negative
+        'speed': isStationary ? 0.0 : speed,   // always ≥ 0
         'direction': _direction,
         'offset_distance': _offsetDistance,
         'revolve_speed': _revolveSpeed,
@@ -105,7 +109,7 @@ class SimulatedGPSService {
 
       _locationStreamController.add(locationData);
 
-      _webSocketService.sendUserGPSData(
+      _ws.sendUserGPSData(
         latitude: latitude,
         longitude: longitude,
         speed: locationData['speed'] as double,
@@ -118,7 +122,7 @@ class SimulatedGPSService {
     });
   }
 
-  void setStationary(bool stationary) => isStationary = stationary;
+  void setStationary(bool value) => isStationary = value;
 
   void dispose() {
     _timer?.cancel();

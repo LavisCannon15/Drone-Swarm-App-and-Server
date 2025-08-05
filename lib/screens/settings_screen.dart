@@ -4,6 +4,10 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'dart:io';
 import '../services/log_manager.dart';
 
+import '../services/gps_service.dart';
+import '../services/simulated_gps_service.dart';
+
+
 class SettingsScreen extends StatefulWidget {
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -62,8 +66,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('swapPositionSpeed', swapPositionSpeed);
     await prefs.setString('serverAddress', serverAddress);
 
-    print("💾 Settings saved!");
-    LogManager().addLog("💾 Settings saved!");
+    // Refresh caches so new values apply immediately
+    await GPSService().refreshSettings();
+    await SimulatedGPSService().refreshSettings();
+
+    LogManager().addLog('💾 Settings saved!');
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _resetToDefault() async {
