@@ -4,7 +4,7 @@ class MapTypeButton extends StatefulWidget {
   final bool isMapView; // Current state (true = MapWidget, false = XYGraphWidget)
   final Function(bool) onToggle; // Callback to notify parent of state change
 
-  MapTypeButton({required this.isMapView, required this.onToggle});
+  const MapTypeButton({super.key, required this.isMapView, required this.onToggle});
 
   @override
   _MapTypeButtonState createState() => _MapTypeButtonState();
@@ -18,6 +18,17 @@ class _MapTypeButtonState extends State<MapTypeButton> {
     super.initState();
     _isMapView = widget.isMapView; // Initialize with parent-provided state
   }
+
+  @override
+  void didUpdateWidget(covariant MapTypeButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isMapView != oldWidget.isMapView) {
+      setState(() {
+        _isMapView = widget.isMapView;
+      });
+    }
+  }
+
 
   void _toggleMapType() {
     setState(() {

@@ -14,7 +14,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   Map<String, dynamic> droneTelemetry = {};
   List<Map<String, dynamic>> droneData = [];
-  Timer? telemetryUpdateTimer;
+  StreamSubscription? _telemetrySubscription;
 
   static const double _minSize = 0.03;
   static const double _maxSize = 0.8;
@@ -22,13 +22,8 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   @override
   void initState() {
     super.initState();
-    startTelemetryUpdates();
-  }
-
-  void startTelemetryUpdates() {
-    telemetryUpdateTimer = Timer.periodic(Duration(seconds: 1), (_) {
-      refreshDroneTelemetry();
-    });
+    _telemetrySubscription =
+        webSocketService.telemetryStream.listen((_) => refreshDroneTelemetry());
 
     print("📡 Started telemetry updates");
     LogManager().addLog("📡 Started telemetry updates");
@@ -71,7 +66,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
 
   @override
   void dispose() {
-    telemetryUpdateTimer?.cancel();
+    _telemetrySubscription?.cancel();
     super.dispose();
   }
 

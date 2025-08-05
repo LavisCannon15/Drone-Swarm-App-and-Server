@@ -24,7 +24,7 @@ class MapWidgetState extends State<MapWidget> {
   double? longitude;
   bool isGPSReady = false;
   Set<Marker> _markers = {};
-  Timer? _telemetryTimer;
+  StreamSubscription? _telemetrySub;
   BitmapDescriptor? _droneIcon;
 
   @override
@@ -33,7 +33,7 @@ class MapWidgetState extends State<MapWidget> {
     _initializeMapRenderer();
     initializeCameraPosition();
     _loadDroneIcon();
-    startDroneTelemetryUpdates();
+    _telemetrySub = webSocketService.telemetryStream.listen((_) => _updateMarkers());
   }
 
   Future<void> _loadDroneIcon() async {
@@ -41,12 +41,6 @@ class MapWidgetState extends State<MapWidget> {
       const ImageConfiguration(size: Size(48, 48)),
       'assets/icons/drone_marker.png',
     );
-  }
-
-  void startDroneTelemetryUpdates() {
-    _telemetryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _updateMarkers();
-    });
   }
 
   void initializeCameraPosition() async {
@@ -110,7 +104,7 @@ class MapWidgetState extends State<MapWidget> {
 
   @override
   void dispose() {
-    _telemetryTimer?.cancel();
+    _telemetrySub?.cancel();
     _mapController?.dispose();
     super.dispose();
   }

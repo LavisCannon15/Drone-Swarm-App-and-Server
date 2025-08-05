@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../screens/settings_screen.dart'; // Adjust the path based on your file structure
 
 class CustomDrawer extends StatelessWidget {
+  const CustomDrawer({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -9,13 +11,13 @@ class CustomDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           // Drawer Header
-          DrawerHeader(
-            decoration: BoxDecoration(
+          const DrawerHeader(
+            decoration: const BoxDecoration(
               color: Colors.blue,
             ),
-            child: Text(
+            child: const Text(
               "Menu",
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
               ),
@@ -23,8 +25,8 @@ class CustomDrawer extends StatelessWidget {
           ),
           // Settings Menu Item
           ListTile(
-            leading: Icon(Icons.settings),
-            title: Text("Settings"),
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
             onTap: () {
               Navigator.pop(context); // Close the drawer
               Navigator.push(

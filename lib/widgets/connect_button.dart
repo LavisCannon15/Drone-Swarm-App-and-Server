@@ -46,10 +46,17 @@ class _ConnectButtonState extends State<ConnectButton> {
     LogManager().addLog("📥 Loaded drone connections: $savedDrones");
 
     setState(() {
-      droneConnections = savedDrones.map((droneData) {
+      final connections = <String>[];
+      for (final droneData in savedDrones) {
         final parts = droneData.split(';');
-        return parts[1];
-      }).toList();
+        if (parts.length >= 2) {
+          connections.add(parts[1]);
+        } else {
+          print("⚠️ Invalid drone entry: $droneData");
+          LogManager().addLog("⚠️ Invalid drone entry: $droneData");
+        }
+      }
+      droneConnections = connections;
     });
   }
 

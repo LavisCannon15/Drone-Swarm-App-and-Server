@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/gps_service.dart';
@@ -11,6 +12,8 @@ class TelemetryWidget extends StatefulWidget {
 class _TelemetryWidgetState extends State<TelemetryWidget> {
   final GPSService gpsService = GPSService();
   final SimulatedGPSService simulatedGPSService = SimulatedGPSService();
+
+  late final StreamSubscription<Map<String, dynamic>> _subscription;
   
   double latitude = 0.0;
   double longitude = 0.0;
@@ -24,7 +27,7 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
 
   void startLocationUpdates() {
     if (Platform.isAndroid || Platform.isIOS) {
-      gpsService.locationStream.listen((locationData) {
+      _subscription = gpsService.locationStream.listen((locationData) {
         setState(() {
           latitude = locationData["latitude"] ?? 0.0;
           longitude = locationData["longitude"] ?? 0.0;
@@ -32,7 +35,7 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
         });
       });
     } else {
-      simulatedGPSService.locationStream.listen((locationData) {
+        _subscription = simulatedGPSService.locationStream.listen((locationData) {
         setState(() {
           latitude = locationData["latitude"] ?? 0.0;
           longitude = locationData["longitude"] ?? 0.0;
@@ -41,6 +44,13 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
       });
     }
   }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
