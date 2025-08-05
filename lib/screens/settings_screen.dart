@@ -7,7 +7,6 @@ import '../services/log_manager.dart';
 import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
-
 class SettingsScreen extends StatefulWidget {
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -43,17 +42,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      takeoffAltitude = prefs.getString('takeoffAltitude') ?? defaultSettings['takeoffAltitude']!;
-      targetAltitude = prefs.getString('targetAltitude') ?? defaultSettings['targetAltitude']!;
-      offsetDistance = prefs.getString('offsetDistance') ?? defaultSettings['offsetDistance']!;
-      revolveSpeed = prefs.getString('revolveSpeed') ?? defaultSettings['revolveSpeed']!;
-      revolveOffsetDistance = prefs.getString('revolveOffsetDistance') ?? defaultSettings['revolveOffsetDistance']!;
-      swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? defaultSettings['swapPositionSpeed']!;
-      serverAddress = prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
+      takeoffAltitude =
+          prefs.getString('takeoffAltitude') ?? defaultSettings['takeoffAltitude']!;
+      targetAltitude =
+          prefs.getString('targetAltitude') ?? defaultSettings['targetAltitude']!;
+      offsetDistance =
+          prefs.getString('offsetDistance') ?? defaultSettings['offsetDistance']!;
+      revolveSpeed =
+          prefs.getString('revolveSpeed') ?? defaultSettings['revolveSpeed']!;
+      revolveOffsetDistance =
+          prefs.getString('revolveOffsetDistance') ?? defaultSettings['revolveOffsetDistance']!;
+      swapPositionSpeed =
+          prefs.getString('swapPositionSpeed') ?? defaultSettings['swapPositionSpeed']!;
+      serverAddress =
+          prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
     });
 
-    print("📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
-    LogManager().addLog("📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+    print(
+        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+    LogManager().addLog(
+        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
   }
 
   Future<void> _saveSettings() async {
@@ -197,8 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Save Button
             ElevatedButton(
               onPressed: () async {
-                await _saveSettings();
-                Navigator.pop(context); // Return to the main screen
+                await _saveSettings(); // <— only pop inside _saveSettings
               },
               child: Text("Save Settings"),
             ),
