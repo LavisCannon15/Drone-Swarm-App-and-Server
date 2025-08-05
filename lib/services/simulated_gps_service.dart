@@ -53,7 +53,11 @@ class SimulatedGPSService {
   String _selectedMode = 'Normal';
 
   SimulatedGPSService() {
-    _loadPreferences();
+    _init();                     // ensures settings load before broadcasting
+  }
+
+  Future<void> _init() async {
+    await _loadPreferences();
     _start();
   }
 
@@ -70,7 +74,8 @@ class SimulatedGPSService {
     _selectedMode = prefs.getString('selectedMode') ?? 'Normal';
   }
 
-  void refreshSettings() => _loadPreferences();
+  /// Allow callers to refresh cached preferences and await completion.
+  Future<void> refreshSettings() => _loadPreferences();
 
   void _start() {
     _timer?.cancel();
@@ -79,6 +84,7 @@ class SimulatedGPSService {
         final deltaLat = (_direction * speed) / METERS_PER_DEGREE_LAT;
         latitude += deltaLat;
         _distanceTraveled += speed;
+
         if (_distanceTraveled >= maxDistance) {
           _direction *= -1;
           _distanceTraveled = 0.0;

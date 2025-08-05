@@ -1,45 +1,53 @@
-import 'package:geolocator/geolocator.dart';
 import 'dart:async';
-import '../services/log_manager.dart';
-import '../services/websocket_service.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/log_manager.dart';
+import '../services/websocket_service.dart';
+
+/// Singleton service that streams the user’s GPS position to the WebSocket
+/// server and to listeners inside the Flutter app.
 class GPSService {
   static final GPSService _instance = GPSService._internal();
-
-  factory GPSService() {
-    return _instance;
-  }
-
+  factory GPSService() => _instance;
   GPSService._internal() {
-    _initGPSService();
+    _initGPSService(); // fire‑and‑forget init
   }
 
-  final StreamController<Map<String, dynamic>> locationStreamController =
+  /* ---------------------------------------------------------------------------
+   *  Public stream for widgets / other services
+   * ------------------------------------------------------------------------ */
+  final _locationStreamController =
       StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get locationStream =>
+      _locationStreamController.stream;
 
-  StreamSubscription<Position>? gpsSubscription;
-  Timer? uiUpdateTimer;
+  /* ---------------------------------------------------------------------------
+   *  Internal state
+   * ------------------------------------------------------------------------ */
+  StreamSubscription<Position>? _gpsSubscription;
 
-  double speed = 0.0;
-  double? lastLatitude;
-  double? lastLongitude;
-  double? lastSpeed;
+  double? _latitude;
+  double? _longitude;
+  double _speed = 0.0;
 
-  // Cached SharedPreferences values
+  // Cached preference values (loaded once, refreshed on demand)
   double _offsetDistance = 4.0;
   double _revolveSpeed = 3.0;
   double _revolveOffsetDistance = 4.0;
   double _swapPositionSpeed = 1.0;
-  String _selectedMode = "Normal";
+  String _selectedMode = 'Normal';
 
+  /* ---------------------------------------------------------------------------
+   *  Initialisation
+   * ------------------------------------------------------------------------ */
   Future<void> _initGPSService() async {
     await _loadPreferences();
+
     if (!await _checkLocationServices()) return;
     if (!await _checkPermissions()) return;
 
-    _startGPSTracking();
-    _startUIUpdateTimer();
+    _startGPSTracking(); // begin streaming real GPS data
   }
 
   Future<void> _loadPreferences() async {
@@ -52,78 +60,95 @@ class GPSService {
         double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
     _swapPositionSpeed =
         double.tryParse(prefs.getString('swapPositionSpeed') ?? '') ?? 1.0;
-    _selectedMode = prefs.getString('selectedMode') ?? "Normal";
+    _selectedMode = prefs.getString('selectedMode') ?? 'Normal';
   }
 
+  /// Call when preferences change to update the cached values.
   Future<void> refreshSettings() async => _loadPreferences();
 
+  /* ---------------------------------------------------------------------------
+   *  Permissions / service checks
+   * ------------------------------------------------------------------------ */
   Future<bool> _checkLocationServices() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      LogManager().addLog("❌ Location services are disabled.");
-      print("❌ Location services are disabled.");
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      LogManager().addLog('❌ Location services are disabled.');
+    }
+    return enabled;
+  }
+
+  Future<bool> _checkPermissions() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        LogManager().addLog('❌ Location permissions are denied.');
+        return false;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        LogManager().addLog('❌ Location permissions are permanently denied.');
+        return false;
+      }
+    } else if (permission == LocationPermission.deniedForever) {
+      LogManager().addLog('❌ Location permissions are permanently denied.');
       return false;
     }
     return true;
   }
 
-  Future<bool> _checkPermissions() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.deniedForever) {
-        LogManager().addLog("❌ Location permissions are permanently denied.");
-        print("❌ Location permissions are permanently denied.");
-        return false;
-      }
-    }
-    return true;
-  }
-
+  /* ---------------------------------------------------------------------------
+   *  GPS tracking
+   * ------------------------------------------------------------------------ */
   void _startGPSTracking() {
-    if (gpsSubscription != null) return; // Prevent duplicate subscriptions
-    gpsSubscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
+    if (_gpsSubscription != null) return; // already running
+    _gpsSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 0,
       ),
-    ).listen((Position position) {
-      _handleNewGPSData(position);
-    });
+    ).listen(
+      _handleNewGPSData,
+      onError: (error) {
+        LogManager().addLog('❌ GPS stream error: $error');
+        _gpsSubscription = null;
+        Future.delayed(const Duration(seconds: 1), _startGPSTracking);
+      },
+      onDone: () {
+        LogManager().addLog('ℹ️ GPS stream closed.');
+        _gpsSubscription = null;
+        Future.delayed(const Duration(seconds: 1), _startGPSTracking);
+      },
+      cancelOnError: true,
+    );
   }
 
   void _handleNewGPSData(Position position) {
-    lastLatitude = position.latitude;
-    lastLongitude = position.longitude;
-    speed = position.speed;
+    _latitude = position.latitude;
+    _longitude = position.longitude;
+    _speed = position.speed;
 
-    _updateLocationStream();
+    _pushLocationUpdate();
   }
 
-  void _startUIUpdateTimer() {
-    uiUpdateTimer?.cancel();
-    uiUpdateTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
-      _updateLocationStream();
-    });
-  }
+  /* ---------------------------------------------------------------------------
+   *  Emit to WebSocket + app listeners
+   * ------------------------------------------------------------------------ */
+  void _pushLocationUpdate() {
+    if (_latitude == null || _longitude == null) return;
 
-  void _updateLocationStream() {
-    if (lastLatitude == null || lastLongitude == null) return;
-    if (lastSpeed == speed) return; // Prevent redundant updates
-    lastSpeed = speed;
-
-    final gpsData = {
-      "latitude": lastLatitude!,
-      "longitude": lastLongitude!,
-      "speed": speed.toStringAsFixed(2),
+    final data = {
+      'latitude': _latitude!,
+      'longitude': _longitude!,
+      'speed': _speed.toStringAsFixed(2),
     };
 
-    final webSocketService = WebSocketService();
-    if (webSocketService.isConnected) {
-      webSocketService.sendUserGPSData(
-        latitude: lastLatitude!,
-        longitude: lastLongitude!,
-        speed: speed,
+    // Send to Python server if connected
+    final ws = WebSocketService();
+    if (ws.isConnected) {
+      ws.sendUserGPSData(
+        latitude: _latitude!,
+        longitude: _longitude!,
+        speed: _speed,
         offsetDistance: _offsetDistance,
         revolveSpeed: _revolveSpeed,
         revolveOffsetDistance: _revolveOffsetDistance,
@@ -132,17 +157,14 @@ class GPSService {
       );
     }
 
-    locationStreamController.add(gpsData);
-    print(
-        "📡 Location Stream Updated: Lat=${lastLatitude!}, Lng=${lastLongitude!}, Speed=$speed");
+    _locationStreamController.add(data); // emit to Flutter listeners
   }
 
-  Stream<Map<String, dynamic>> get locationStream =>
-      locationStreamController.stream;
-
+  /* ---------------------------------------------------------------------------
+   *  Cleanup
+   * ------------------------------------------------------------------------ */
   void dispose() {
-    gpsSubscription?.cancel();
-    uiUpdateTimer?.cancel();
-    locationStreamController.close();
+    _gpsSubscription?.cancel();
+    _locationStreamController.close();
   }
 }
