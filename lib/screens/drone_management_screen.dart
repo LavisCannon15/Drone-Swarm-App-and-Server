@@ -22,6 +22,13 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
     _loadDrones();
   }
 
+  @override
+  void dispose() {
+    _ipController.dispose();
+    super.dispose();
+  }
+
+
   Future<void> _loadDrones() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('drones') ?? [];

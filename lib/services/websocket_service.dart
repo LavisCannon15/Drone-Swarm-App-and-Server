@@ -228,11 +228,9 @@ class WebSocketService {
     if (isConnected) {
       await _webSocket.close();
       isConnected = false;
-      _telemetryStreamController.close();
-      _serverLogStreamController.close();
-
       print("🔌 Disconnected from WebSocket.");
       LogManager().addLog("🔌 Disconnected from WebSocket.");
     }
   }
 }
+

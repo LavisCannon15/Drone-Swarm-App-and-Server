@@ -33,10 +33,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String swapPositionSpeed = "1";
   String serverAddress = "ws://127.0.0.1:5000";
 
+  late final TextEditingController takeoffAltitudeController;
+  late final TextEditingController targetAltitudeController;
+  late final TextEditingController offsetDistanceController;
+  late final TextEditingController revolveSpeedController;
+  late final TextEditingController revolveOffsetDistanceController;
+  late final TextEditingController swapPositionSpeedController;
+  late final TextEditingController serverAddressController;
+
   @override
   void initState() {
     super.initState();
+    takeoffAltitudeController = TextEditingController();
+    targetAltitudeController = TextEditingController();
+    offsetDistanceController = TextEditingController();
+    revolveSpeedController = TextEditingController();
+    revolveOffsetDistanceController = TextEditingController();
+    swapPositionSpeedController = TextEditingController();
+    serverAddressController = TextEditingController();
     _loadSettings(); // Load saved settings
+  }
+
+  @override
+  void dispose() {
+    takeoffAltitudeController.dispose();
+    targetAltitudeController.dispose();
+    offsetDistanceController.dispose();
+    revolveSpeedController.dispose();
+    revolveOffsetDistanceController.dispose();
+    swapPositionSpeedController.dispose();
+    serverAddressController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -56,6 +83,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('swapPositionSpeed') ?? defaultSettings['swapPositionSpeed']!;
       serverAddress =
           prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
+
+      takeoffAltitudeController.text = takeoffAltitude;
+      targetAltitudeController.text = targetAltitude;
+      offsetDistanceController.text = offsetDistance;
+      revolveSpeedController.text = revolveSpeed;
+      revolveOffsetDistanceController.text = revolveOffsetDistance;
+      swapPositionSpeedController.text = swapPositionSpeed;
+      serverAddressController.text = serverAddress;
     });
 
     print(
@@ -91,6 +126,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       revolveOffsetDistance = defaultSettings['revolveOffsetDistance']!;
       swapPositionSpeed = defaultSettings['swapPositionSpeed']!;
       serverAddress = defaultSettings['serverAddress']!;
+
+      takeoffAltitudeController.text = takeoffAltitude;
+      targetAltitudeController.text = targetAltitude;
+      offsetDistanceController.text = offsetDistance;
+      revolveSpeedController.text = revolveSpeed;
+      revolveOffsetDistanceController.text = revolveOffsetDistance;
+      swapPositionSpeedController.text = swapPositionSpeed;
+      serverAddressController.text = serverAddress;
     });
 
     await _saveSettings(); // Save default values
@@ -133,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => takeoffAltitude = value,
-              controller: TextEditingController(text: takeoffAltitude),
+              controller: takeoffAltitudeController,
             ),
             SizedBox(height: 10),
             // Target Altitude
@@ -144,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => targetAltitude = value,
-              controller: TextEditingController(text: targetAltitude),
+              controller: targetAltitudeController,
             ),
             SizedBox(height: 10),
             // Offset Distance
@@ -155,7 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => offsetDistance = value,
-              controller: TextEditingController(text: offsetDistance),
+              controller: offsetDistanceController,
             ),
             SizedBox(height: 10),
             // Revolve Speed
@@ -166,7 +209,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => revolveSpeed = value,
-              controller: TextEditingController(text: revolveSpeed),
+              controller: revolveSpeedController,
             ),
             SizedBox(height: 10),
             // Revolve Offset Distance
@@ -177,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => revolveOffsetDistance = value,
-              controller: TextEditingController(text: revolveOffsetDistance),
+              controller: revolveOffsetDistanceController,
             ),
             SizedBox(height: 10),
             // Swap Position Speed
@@ -188,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (value) => swapPositionSpeed = value,
-              controller: TextEditingController(text: swapPositionSpeed),
+              controller: swapPositionSpeedController,
             ),
             SizedBox(height: 10),
             // Server Address
@@ -199,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               keyboardType: TextInputType.text,
               onChanged: (value) => serverAddress = value,
-              controller: TextEditingController(text: serverAddress),
+              controller: serverAddressController,
             ),
             SizedBox(height: 20),
             // Save Button

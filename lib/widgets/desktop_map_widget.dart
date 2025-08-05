@@ -10,9 +10,8 @@ import '../services/simulated_gps_service.dart';
 import '../services/websocket_service.dart';
 
 class DesktopMapWidget extends StatefulWidget {
-  final GlobalKey<DesktopMapWidgetState> key;
-
-  DesktopMapWidget({required this.key}) : super(key: key);
+  
+  const DesktopMapWidget({super.key});
 
   @override
   DesktopMapWidgetState createState() => DesktopMapWidgetState();
@@ -74,8 +73,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
 
   /// Subscribe to live telemetry rather than polling
   void _startDroneTelemetryStream() {
-    _telemetrySubscription =
-        webSocketService.telemetryStream.listen((_) {
+    _telemetrySubscription = webSocketService.telemetryStream.listen((_) {
       if (!mounted) return;
       setState(() {
         droneLocations = webSocketService.telemetryData.map(
@@ -118,7 +116,9 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
         initialZoom: 18.0,
         minZoom: 5.0,
         maxZoom: 18.0,
-        interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+                interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all,
+        ),
         backgroundColor: const Color(0xFFE0E0E0),
       ),
       children: [
@@ -133,9 +133,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
             debugPrint("❌ Failed to load tile: $tile, Error: $error");
           },
         ),
-        MarkerLayer(
-          markers: _buildMarkers(),
-        ),
+        MarkerLayer(markers: _buildMarkers()),
       ],
     );
   }

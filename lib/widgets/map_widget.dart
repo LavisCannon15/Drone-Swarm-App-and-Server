@@ -8,9 +8,8 @@ import '../services/gps_service.dart';
 import '../services/websocket_service.dart';
 
 class MapWidget extends StatefulWidget {
-  final GlobalKey<MapWidgetState> key;
 
-  MapWidget({required this.key}) : super(key: key);
+  const MapWidget({super.key});
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -112,6 +111,7 @@ class MapWidgetState extends State<MapWidget> {
   @override
   void dispose() {
     _telemetryTimer?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 

@@ -108,12 +108,13 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
         icon: Icon(Icons.delete),
         tooltip: "Clear Logs",
         onPressed: () {
-          setState(() {
-            _flutterLogs = List<String>.from(LogManager().logs);
-            _serverLogs = List<String>.from(WebSocketService().serverLogs);
 
-            LogManager().clearLogs();
-            WebSocketService().serverLogs.clear();
+          LogManager().clearLogs();
+          WebSocketService().serverLogs.clear();
+
+          setState(() {
+            _flutterLogs = [];
+            _serverLogs = [];
           });
 
           print("🗑️ Console logs cleared.");
@@ -143,3 +144,6 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
     return Colors.white; // Default log color
   }
 }
+
+
+
