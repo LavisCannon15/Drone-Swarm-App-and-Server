@@ -277,7 +277,8 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
                 triangle_positions = ensure_equal_distance(drones, triangle_positions, offset_distance)
 
-                move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
+                #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
+                move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
 
                 print("User is moving")
 

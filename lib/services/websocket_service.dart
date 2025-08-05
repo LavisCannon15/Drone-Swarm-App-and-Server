@@ -14,12 +14,18 @@ class WebSocketService {
   late WebSocket _webSocket;
   bool isConnected = false;
 
+  // ─── Telemetry stream ────────────────────────────────────────────────────────
+  final StreamController<void> _telemetryStreamController =
+      StreamController.broadcast();
+  Stream<void> get telemetryStream => _telemetryStreamController.stream;
+
   // Store telemetry data
   final Map<String, Map<String, dynamic>> telemetryData = {};
 
   // Store server logs
   final List<String> serverLogs = [];
-  final StreamController<List<String>> _serverLogStreamController = StreamController.broadcast();
+  final StreamController<List<String>> _serverLogStreamController =
+      StreamController.broadcast();
   Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
 
   // Timer for sending GPS updates
@@ -66,19 +72,20 @@ class WebSocketService {
     _gpsUpdateTimer?.cancel(); // Cancel any existing timer
     _gpsUpdateTimer = Timer.periodic(Duration(seconds: 1), (_) async {
       final prefs = await SharedPreferences.getInstance();
-      double offsetDistance = double.parse(prefs.getString('offsetDistance') ?? "4");
-      double revolveSpeed = double.parse(prefs.getString('revolveSpeed') ?? "3");
-      double revolveOffsetDistance = double.parse(prefs.getString('revolveOffsetDistance') ?? "4");
-      double swapPositionSpeed = double.parse(prefs.getString('swapPositionSpeed') ?? "2");
+      double offsetDistance =
+          double.parse(prefs.getString('offsetDistance') ?? "4");
+      double revolveSpeed =
+          double.parse(prefs.getString('revolveSpeed') ?? "3");
+      double revolveOffsetDistance =
+          double.parse(prefs.getString('revolveOffsetDistance') ?? "4");
+      double swapPositionSpeed =
+          double.parse(prefs.getString('swapPositionSpeed') ?? "2");
       String selectedMode = prefs.getString('selectedMode') ?? "Normal";
 
       Map<String, dynamic> locationData;
       if (Platform.isAndroid || Platform.isIOS) {
-        // Use the real GPSService on mobile devices
-        // We use 'first' to get the latest data; note that this creates a one-time subscription each tick.
         locationData = await GPSService().locationStream.first;
       } else {
-        // Use the simulated GPS service on other platforms
         locationData = await SimulatedGPSService().locationStream.first;
       }
 
@@ -95,8 +102,6 @@ class WebSocketService {
     });
   }
 
-
-
   double lastLatitude = 0.0;
   double lastLongitude = 0.0;
 
@@ -108,7 +113,7 @@ class WebSocketService {
     required double offsetDistance,
     required double revolveSpeed,
     required double revolveOffsetDistance,
-    required double swapPositionSpeed,  // ✅ Include swapPositionSpeed
+    required double swapPositionSpeed,
     required String selectedMode,
   }) {
     if (!isConnected) return;
@@ -122,7 +127,7 @@ class WebSocketService {
         "offset_distance": offsetDistance,
         "revolve_speed": revolveSpeed,
         "revolve_offset_distance": revolveOffsetDistance,
-        "swap_position_speed": swapPositionSpeed,  // ✅ Include swapPositionSpeed
+        "swap_position_speed": swapPositionSpeed,
         "orbit_around_user": selectedMode == "Orbit",
         "swap_positions": selectedMode == "Swap Positions",
         "rotate_triangle_formation": selectedMode == "Rotate Triangle"
@@ -131,17 +136,14 @@ class WebSocketService {
 
     _webSocket.add(jsonEncode(message));
 
-    //print("📡 Sent user GPS data: $message");
-    //LogManager().addLog("📡 Sent user GPS data: $message");
-
-    // ✅ Log only if user moves at least 5 meters
-    if ((latitude - lastLatitude).abs() > 0.00005 || (longitude - lastLongitude).abs() > 0.00005) {
-      LogManager().addLog("📜 Sent User Location Update: Lat=$latitude, Lng=$longitude, Speed=$speed");
+    if ((latitude - lastLatitude).abs() > 0.00005 ||
+        (longitude - lastLongitude).abs() > 0.00005) {
+      LogManager()
+          .addLog("📜 Sent User Location Update: Lat=$latitude, Lng=$longitude, Speed=$speed");
       lastLatitude = latitude;
       lastLongitude = longitude;
     }
   }
-
 
   // Send start operations command (Takeoff)
   Future<void> sendStartOperations() async {
@@ -151,30 +153,29 @@ class WebSocketService {
       return;
     }
 
-    // ✅ Retrieve settings from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     String takeoffAltitude = prefs.getString('takeoffAltitude') ?? "3";
     String targetAltitude = prefs.getString('targetAltitude') ?? "1";
     String offsetDistance = prefs.getString('offsetDistance') ?? "4";
     String revolveSpeed = prefs.getString('revolveSpeed') ?? "3";
-    String revolveOffsetDistance = prefs.getString('revolveOffsetDistance') ?? "4";
-    String swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? "1";  // ✅ Get Swap Position Speed
+    String revolveOffsetDistance =
+        prefs.getString('revolveOffsetDistance') ?? "4";
+    String swapPositionSpeed =
+        prefs.getString('swapPositionSpeed') ?? "1";
     String selectedMode = prefs.getString('selectedMode') ?? "Normal";
 
-    // ✅ Prepare the data to send to the WebSocket server
     Map<String, dynamic> commandData = {
       "takeoff_altitude": double.parse(takeoffAltitude),
       "target_altitude": double.parse(targetAltitude),
       "offset_distance": double.parse(offsetDistance),
       "revolve_speed": double.parse(revolveSpeed),
       "revolve_offset_distance": double.parse(revolveOffsetDistance),
-      "swap_position_speed": double.parse(swapPositionSpeed),  // ✅ Include swapPositionSpeed
+      "swap_position_speed": double.parse(swapPositionSpeed),
       "orbit_around_user": selectedMode == "Orbit",
       "swap_positions": selectedMode == "Swap Positions",
       "rotate_triangle_formation": selectedMode == "Rotate Triangle"
     };
 
-    // ✅ Send the command to the WebSocket server
     sendCommand("start_operations", commandData);
 
     print("🚀 Sent Start Operations Command: $commandData");
@@ -194,7 +195,6 @@ class WebSocketService {
     print("🛬 Sent Stop Operations Command");
     LogManager().addLog("🛬 Sent Stop Operations Command");
   }
-
 
   // Send command to WebSocket server
   Future<void> sendCommand(String command, Map<String, dynamic> params) async {
@@ -229,7 +229,8 @@ class WebSocketService {
       _webSocket.add(jsonEncode(message));
 
       print("🔗 Drone connection requests sent: $droneConnections");
-      LogManager().addLog("🔗 Drone connection requests sent: $droneConnections");
+      LogManager()
+          .addLog("🔗 Drone connection requests sent: $droneConnections");
     } catch (e) {
       print("❌ Error sending drone connection requests: $e");
       LogManager().addLog("❌ Error sending drone connection requests: $e");
@@ -242,18 +243,13 @@ class WebSocketService {
       final message = jsonDecode(data);
 
       if (message["command"] == "telemetry") {
-        // Parse telemetry data
         final List<dynamic> telemetryList = message["data"];
-        telemetryData.clear(); // Clear old telemetry data
-
-        for (var drone in telemetryList) {
-          telemetryData[drone["drone_id"]] = Map<String, dynamic>.from(drone);
-        }
-
-        //print("📡 Telemetry updated: $telemetryData");
-        //LogManager().addLog("📡 Telemetry updated: $telemetryData");
+        telemetryData
+          ..clear()
+          ..addEntries(telemetryList.map((drone) =>
+              MapEntry(drone["drone_id"], Map<String, dynamic>.from(drone))));
+        _telemetryStreamController.add(null);    // notify listeners
       } else if (message["command"] == "log") {
-        // Handle server logs
         String logMessage = message["message"];
         serverLogs.add(logMessage);
         _serverLogStreamController.add(List.from(serverLogs));
@@ -275,7 +271,9 @@ class WebSocketService {
     if (isConnected) {
       await _webSocket.close();
       isConnected = false;
-      _gpsUpdateTimer?.cancel(); // Stop GPS updates
+      _gpsUpdateTimer?.cancel();
+      _telemetryStreamController.close();
+      _serverLogStreamController.close();
 
       print("🔌 Disconnected from WebSocket.");
       LogManager().addLog("🔌 Disconnected from WebSocket.");

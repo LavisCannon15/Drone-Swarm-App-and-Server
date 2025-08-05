@@ -22,80 +22,91 @@ class SimulatedGPSService {
 
 
 import 'dart:async';
-import 'dart:math';
 import '../services/websocket_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SimulatedGPSService {
-  double latitude = -35.3631723; // Initial latitude
-  double longitude = 149.1652375; // Initial longitude
-  double speed = 1.4; // Default walking speed in meters per second
-  bool movingForward = true; // Toggle for forward/backward movement
-  bool isStationary = true; // If true, user doesn't move
+  double latitude = -35.3631723;      // Starting point
+  double longitude = 149.1652375;
+  double speed = 1.0;                 // meters per second
+  final double maxDistance = 20.0;     // total travel range
 
-  static const double METERS_PER_DEGREE_LAT = 111139.0; // Conversion factor
-  final WebSocketService _webSocketService = WebSocketService(); // ✅ WebSocket instance
+  bool isStationary = false;           // toggle to pause movement
 
-  StreamController<Map<String, dynamic>> _locationStreamController = StreamController.broadcast();
-  Stream<Map<String, dynamic>> get locationStream => _locationStreamController.stream;
+  double _distanceTraveled = 0.0;
+  int _direction = 1;                 // 1 = forward, -1 = backward
+
+  static const double METERS_PER_DEGREE_LAT = 111139.0;
+
+  final WebSocketService _webSocketService = WebSocketService();
+  final StreamController<Map<String, dynamic>> _locationStreamController =
+      StreamController.broadcast();
+  Stream<Map<String, dynamic>> get locationStream =>
+      _locationStreamController.stream;
+
+  Timer? _timer;
 
   SimulatedGPSService() {
-    _startSimulatedMovement();
+    _start();
   }
 
-void _startSimulatedMovement() {
-  Timer.periodic(Duration(seconds: 1), (timer) async {
-    if (!isStationary) {
-      double movement = speed / METERS_PER_DEGREE_LAT; // Convert meters/sec to degrees
-      latitude += movingForward ? movement : -movement;
+  void _start() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!isStationary) {
+        final double deltaLat = (_direction * speed) / METERS_PER_DEGREE_LAT;
+        latitude += deltaLat;
+        _distanceTraveled += speed;
 
-      // Toggle direction randomly
-      if (Random().nextInt(10) == 0) {
-        movingForward = !movingForward;
+        if (_distanceTraveled >= maxDistance) {
+          _direction *= -1;
+          _distanceTraveled = 0.0;
+        }
       }
-    }
 
-    final prefs = await SharedPreferences.getInstance();
-    
-    // ✅ Ensure conversion from String? to double with fallback values
-    double offsetDistance = double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
-    double revolveSpeed = double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 3.0;
-    double revolveOffsetDistance = double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
-    double swapPositionSpeed = double.parse(prefs.getString('swapPositionSpeed') ?? "1");  // ✅ Get Swap Position Speed
-    String selectedMode = prefs.getString('selectedMode') ?? "Normal";
-  
+      final prefs = await SharedPreferences.getInstance();
+      final double offsetDistance =
+          double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
+      final double revolveSpeed =
+          double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 3.0;
+      final double revolveOffsetDistance =
+          double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
+      final double swapPositionSpeed =
+          double.tryParse(prefs.getString('swapPositionSpeed') ?? '') ?? 1.0;
+      final String selectedMode = prefs.getString('selectedMode') ?? 'Normal';
 
-    final locationData = {
-      "latitude": latitude,
-      "longitude": longitude,
-      "speed": isStationary ? 0.0 : speed,
-      "offset_distance": offsetDistance,
-      "revolve_speed": revolveSpeed,
-      "revolve_offset_distance": revolveOffsetDistance,
-      "swap_position_speed" : swapPositionSpeed,
-      "selectedMode": selectedMode,
-    };
+      final locationData = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "speed": isStationary ? 0.0 : speed * _direction,
+        "offset_distance": offsetDistance,
+        "revolve_speed": revolveSpeed,
+        "revolve_offset_distance": revolveOffsetDistance,
+        "swap_position_speed": swapPositionSpeed,
+        "selectedMode": selectedMode,
+      };
 
-    _locationStreamController.add(locationData); // Notify listeners
+      _locationStreamController.add(locationData);
 
-    // ✅ Send data to the WebSocket server
-    _webSocketService.sendUserGPSData(
-      latitude: locationData["latitude"] as double,
-      longitude: locationData["longitude"] as double,
-      speed: locationData["speed"] as double,
-      offsetDistance: locationData["offset_distance"] as double,
-      revolveSpeed: locationData["revolve_speed"] as double,
-      revolveOffsetDistance: locationData["revolve_offset_distance"] as double,
-      swapPositionSpeed: locationData["swap_position_speed"] as double,
-      selectedMode: locationData["selectedMode"] as String,
-    );
-  });
-}
+      _webSocketService.sendUserGPSData(
+        latitude: latitude,
+        longitude: longitude,
+        speed: locationData["speed"] as double,
+        offsetDistance: offsetDistance,
+        revolveSpeed: revolveSpeed,
+        revolveOffsetDistance: revolveOffsetDistance,
+        swapPositionSpeed: swapPositionSpeed,
+        selectedMode: selectedMode,
+      );
+    });
+  }
 
+  void setStationary(bool stationary) {
+    isStationary = stationary;
+  }
 
-  // Function to change speed (0 m/s means stationary)
-  void setSpeed(double newSpeed) {
-    speed = newSpeed;
-    isStationary = (speed == 0);
+  void dispose() {
+    _timer?.cancel();
+    _locationStreamController.close();
   }
 }
