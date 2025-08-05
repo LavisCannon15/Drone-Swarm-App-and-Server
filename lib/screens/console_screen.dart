@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/log_manager.dart';
 import '../services/websocket_service.dart';
@@ -9,32 +8,6 @@ class ConsoleScreen extends StatefulWidget {
 }
 
 class _ConsoleScreenState extends State<ConsoleScreen> {
-  Duration logUpdateInterval = Duration(milliseconds: 500); // ✅ Throttle log updates every 500ms
-  Timer? _logUpdateTimer;
-  List<String> _flutterLogs = [];
-  List<String> _serverLogs = [];
-  bool isReceivingLogs = true; // ✅ Toggle for pausing/resuming logs
-
-  @override
-  void initState() {
-    super.initState();
-
-    // ✅ Set up real-time log updates
-    _logUpdateTimer = Timer.periodic(logUpdateInterval, (_) {
-      if (mounted && isReceivingLogs) {
-        setState(() {
-          _flutterLogs = List<String>.from(LogManager().logs);
-          _serverLogs = List<String>.from(WebSocketService().serverLogs);
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _logUpdateTimer?.cancel(); // ✅ Stop timer when screen is closed
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,28 +37,41 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
   Widget _buildFlutterConsole() {
     return Container(
       color: Colors.black, // ✅ Restore black background
-      child: ListView.builder(
-        padding: EdgeInsets.all(10),
-        itemCount: _flutterLogs.length,
-        itemBuilder: (context, index) {
-          // ✅ Filter out "Server Log:" entries from the Flutter Console
-          if (_flutterLogs[index].contains("Server Log:")) {
-            return SizedBox.shrink(); // ✅ Hide server logs in Flutter Console
-          }
-          return _buildLogText(_flutterLogs[index]);
+      child: StreamBuilder<List<String>>(
+        stream: LogManager().logStream,
+        initialData: LogManager().logs,
+        builder: (context, snapshot) {
+          final logs = (snapshot.data ?? [])
+              .where((log) => !log.contains("Server Log:"))
+              .toList();
+          return ListView.builder(
+            padding: EdgeInsets.all(10),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              return _buildLogText(logs[index]);
+            },
+          );
         },
       ),
     );
   }
 
+
   Widget _buildServerConsole() {
     return Container(
       color: Colors.black, // ✅ Restore black background
-      child: ListView.builder(
-        padding: EdgeInsets.all(10),
-        itemCount: _serverLogs.length,
-        itemBuilder: (context, index) {
-          return _buildLogText(_serverLogs[index]);
+      child: StreamBuilder<List<String>>(
+        stream: WebSocketService().serverLogStream,
+        initialData: WebSocketService().serverLogs,
+        builder: (context, snapshot) {
+          final logs = snapshot.data ?? [];
+          return ListView.builder(
+            padding: EdgeInsets.all(10),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              return _buildLogText(logs[index]);
+            },
+          );
         },
       ),
     );
@@ -110,13 +96,9 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
         onPressed: () {
 
           LogManager().clearLogs();
-          WebSocketService().serverLogs.clear();
+          WebSocketService().clearServerLogs();
 
-          setState(() {
-            _flutterLogs = [];
-            _serverLogs = [];
-          });
-
+          setState(() {});
           print("🗑️ Console logs cleared.");
         },
 

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:collection/collection.dart';
 import '../services/gps_service.dart';
 import '../services/websocket_service.dart';
 
@@ -26,6 +25,8 @@ class MapWidgetState extends State<MapWidget> {
   Set<Marker> _markers = {};
   StreamSubscription? _telemetrySub;
   BitmapDescriptor? _droneIcon;
+  final Map<String, LatLng> _previousPositions = {};
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -33,7 +34,8 @@ class MapWidgetState extends State<MapWidget> {
     _initializeMapRenderer();
     initializeCameraPosition();
     _loadDroneIcon();
-    _telemetrySub = webSocketService.telemetryStream.listen((_) => _updateMarkers());
+    _telemetrySub =
+    webSocketService.telemetryStream.listen((_) => _scheduleMarkerUpdate());
   }
 
   Future<void> _loadDroneIcon() async {
@@ -74,37 +76,55 @@ class MapWidgetState extends State<MapWidget> {
     }
   }
 
-  void _updateMarkers() {
-    Set<Marker> markers = {};
-    final droneLocations = webSocketService.telemetryData.map(
-      (id, data) => MapEntry(
-        id,
-        LatLng(
-          (data['latitude'] as num?)?.toDouble() ?? 0.0,
-          (data['longitude'] as num?)?.toDouble() ?? 0.0,
-        ),
-      ),
-    );
+  void _scheduleMarkerUpdate() {
+  _debounceTimer?.cancel();
+  _debounceTimer = Timer(const Duration(milliseconds: 100), _updateMarkers);
+}
 
-    droneLocations.forEach((id, location) {
-      markers.add(
-        Marker(
+
+  void _updateMarkers() {
+    bool updated = false;
+    final data = webSocketService.telemetryData;
+    final currentIds = data.keys.toSet();
+
+    final removedIds =
+        _previousPositions.keys.where((id) => !currentIds.contains(id)).toList();
+    for (final id in removedIds) {
+      _previousPositions.remove(id);
+      _markers.removeWhere((m) => m.markerId.value == id);
+      updated = true;
+    }
+
+    data.forEach((id, value) {
+      final location = LatLng(
+        (value['latitude'] as num?)?.toDouble() ?? 0.0,
+        (value['longitude'] as num?)?.toDouble() ?? 0.0,
+      );
+      final previous = _previousPositions[id];
+      if (previous == null || previous != location) {
+        _previousPositions[id] = location;
+        final marker = Marker(
           markerId: MarkerId(id),
           position: location,
           icon: _droneIcon ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        ),
-      );
+        );
+        _markers.removeWhere((m) => m.markerId.value == id);
+        _markers.add(marker);
+        updated = true;
+      }
     });
 
-    if (!const SetEquality().equals(_markers, markers)) {
-      setState(() => _markers = markers);
+    if (updated) {
+      setState(() {});
     }
   }
+
 
   @override
   void dispose() {
     _telemetrySub?.cancel();
+    _debounceTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }

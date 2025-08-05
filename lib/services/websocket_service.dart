@@ -27,6 +27,19 @@ class WebSocketService {
   Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
   static const int _maxServerLogs = 500;
 
+    void addServerLog(String logMessage) {
+    serverLogs.add(logMessage);
+    if (serverLogs.length > _maxServerLogs) {
+      serverLogs.removeRange(0, serverLogs.length - _maxServerLogs);
+    }
+    _serverLogStreamController.add(List.from(serverLogs));
+  }
+
+  void clearServerLogs() {
+    serverLogs.clear();
+    _serverLogStreamController.add([]);
+  }
+
   // Connect to WebSocket server
   Future<void> connect(String url) async {
     try {
@@ -205,11 +218,7 @@ class WebSocketService {
         _telemetryStreamController.add(null); // notify listeners
       } else if (message["command"] == "log") {
         String logMessage = message["message"];
-        serverLogs.add(logMessage);
-        if (serverLogs.length > _maxServerLogs) {
-          serverLogs.removeRange(0, serverLogs.length - _maxServerLogs);
-        }
-        _serverLogStreamController.add(List.from(serverLogs));
+        addServerLog(logMessage);
 
         print("📜 Server Log: $logMessage");
         LogManager().addLog("📜 Server Log: $logMessage");
