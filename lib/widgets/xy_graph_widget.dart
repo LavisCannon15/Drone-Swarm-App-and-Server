@@ -31,29 +31,32 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   }
 
   void startLocationUpdates() {
-    _locationSubscription?.cancel(); // ✅ Ensure no duplicate subscriptions
+    _locationSubscription?.cancel();
 
     if (Platform.isAndroid || Platform.isIOS) {
       _locationSubscription = gpsService.locationStream.listen((locationData) {
-        if (!mounted) return; // ✅ Prevent calling setState() after dispose
+        if (!mounted) return;
         setState(() {
-          userLocation = LatLng(locationData["latitude"], locationData["longitude"]);
+          userLocation =
+              LatLng(locationData["latitude"], locationData["longitude"]);
         });
       });
     } else {
-      _locationSubscription = simulatedGPSService.locationStream.listen((locationData) {
+      _locationSubscription =
+          simulatedGPSService.locationStream.listen((locationData) {
         if (!mounted) return;
         setState(() {
-          userLocation = LatLng(locationData["latitude"], locationData["longitude"]);
+          userLocation =
+              LatLng(locationData["latitude"], locationData["longitude"]);
         });
       });
     }
   }
 
   void startDroneTelemetryUpdates() {
-    _telemetrySubscription?.cancel(); // Prevent multiple subscriptions
-    _telemetrySubscription = webSocketService.serverLogStream.listen((_) {
-      if (!mounted) return; // Ensure widget is still in tree before updating state
+    _telemetrySubscription?.cancel();
+    _telemetrySubscription = webSocketService.telemetryStream.listen((_) {
+      if (!mounted) return;
       setState(() {
         droneLocations = webSocketService.telemetryData.map(
           (id, data) => MapEntry(
@@ -68,26 +71,21 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
     });
   }
 
-
   @override
   void dispose() {
-    _locationSubscription?.cancel(); // ✅ Stop GPS updates
-    _telemetrySubscription?.cancel(); // ✅ Stop WebSocket updates
+    _locationSubscription?.cancel();
+    _telemetrySubscription?.cancel();
     super.dispose();
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     print("🔄 XYGraphWidget rebuilding at ${DateTime.now().toIso8601String()}");
 
-    //final List<LatLng> allLocations = [...droneLocations.values, userLocation];
-
-    // ✅ Set user location as the center of the graph
     double centerLongitude = userLocation.longitude;
     double centerLatitude = userLocation.latitude;
 
-    // ✅ Define a fixed range around the user to ensure proper scaling
-    double range = 0.0005;  // Adjust this value for zoom level
+    double range = 0.0005;
 
     double minLongitude = centerLongitude - range;
     double maxLongitude = centerLongitude + range;
@@ -99,7 +97,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
       return FlSpot(location.longitude, location.latitude);
     }).toList();
 
-    final FlSpot userSpot = FlSpot(userLocation.longitude, userLocation.latitude);
+    final FlSpot userSpot =
+        FlSpot(userLocation.longitude, userLocation.latitude);
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -134,7 +133,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
                   showTitles: true,
                   reservedSize: 40,
                   getTitlesWidget: (value, meta) {
-                    return Text(value.toStringAsFixed(5), style: TextStyle(fontSize: 10));
+                    return Text(value.toStringAsFixed(5),
+                        style: TextStyle(fontSize: 10));
                   },
                 ),
               ),
@@ -146,7 +146,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
                   getTitlesWidget: (value, meta) {
                     return Padding(
                       padding: EdgeInsets.only(top: 4),
-                      child: Text(value.toStringAsFixed(5), style: TextStyle(fontSize: 10)),
+                      child: Text(value.toStringAsFixed(5),
+                          style: TextStyle(fontSize: 10)),
                     );
                   },
                 ),
@@ -203,5 +204,4 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
       ),
     );
   }
-
 }

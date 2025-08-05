@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import '../services/log_manager.dart';
-import '../services/simulated_gps_service.dart';
-import '../services/gps_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WebSocketService {
@@ -22,14 +20,12 @@ class WebSocketService {
   // Store telemetry data
   final Map<String, Map<String, dynamic>> telemetryData = {};
 
-  // Store server logs
+  // Store server logs (capped)
   final List<String> serverLogs = [];
   final StreamController<List<String>> _serverLogStreamController =
       StreamController.broadcast();
   Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
-
-  // Timer for sending GPS updates
-  Timer? _gpsUpdateTimer;
+  static const int _maxServerLogs = 500;
 
   // Connect to WebSocket server
   Future<void> connect(String url) async {
@@ -56,50 +52,10 @@ class WebSocketService {
           isConnected = false;
         },
       );
-
-      // ✅ Start sending GPS updates after connection
-      _startSendingGPSData();
     } catch (e) {
       print("⚠️ Failed to connect to WebSocket: $e");
       LogManager().addLog("⚠️ Failed to connect to WebSocket: $e");
     }
-  }
-
-  // Start sending user GPS data to the server
-  void _startSendingGPSData() {
-    if (!isConnected) return;
-
-    _gpsUpdateTimer?.cancel(); // Cancel any existing timer
-    _gpsUpdateTimer = Timer.periodic(Duration(seconds: 1), (_) async {
-      final prefs = await SharedPreferences.getInstance();
-      double offsetDistance =
-          double.parse(prefs.getString('offsetDistance') ?? "4");
-      double revolveSpeed =
-          double.parse(prefs.getString('revolveSpeed') ?? "3");
-      double revolveOffsetDistance =
-          double.parse(prefs.getString('revolveOffsetDistance') ?? "4");
-      double swapPositionSpeed =
-          double.parse(prefs.getString('swapPositionSpeed') ?? "2");
-      String selectedMode = prefs.getString('selectedMode') ?? "Normal";
-
-      Map<String, dynamic> locationData;
-      if (Platform.isAndroid || Platform.isIOS) {
-        locationData = await GPSService().locationStream.first;
-      } else {
-        locationData = await SimulatedGPSService().locationStream.first;
-      }
-
-      sendUserGPSData(
-        latitude: locationData["latitude"],
-        longitude: locationData["longitude"],
-        speed: double.tryParse(locationData["speed"].toString()) ?? 0.0,
-        offsetDistance: offsetDistance,
-        revolveSpeed: revolveSpeed,
-        revolveOffsetDistance: revolveOffsetDistance,
-        swapPositionSpeed: swapPositionSpeed,
-        selectedMode: selectedMode,
-      );
-    });
   }
 
   double lastLatitude = 0.0;
@@ -138,8 +94,8 @@ class WebSocketService {
 
     if ((latitude - lastLatitude).abs() > 0.00005 ||
         (longitude - lastLongitude).abs() > 0.00005) {
-      LogManager()
-          .addLog("📜 Sent User Location Update: Lat=$latitude, Lng=$longitude, Speed=$speed");
+      LogManager().addLog(
+          "📜 Sent User Location Update: Lat=$latitude, Lng=$longitude, Speed=$speed");
       lastLatitude = latitude;
       lastLongitude = longitude;
     }
@@ -160,8 +116,7 @@ class WebSocketService {
     String revolveSpeed = prefs.getString('revolveSpeed') ?? "3";
     String revolveOffsetDistance =
         prefs.getString('revolveOffsetDistance') ?? "4";
-    String swapPositionSpeed =
-        prefs.getString('swapPositionSpeed') ?? "1";
+    String swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? "1";
     String selectedMode = prefs.getString('selectedMode') ?? "Normal";
 
     Map<String, dynamic> commandData = {
@@ -229,8 +184,7 @@ class WebSocketService {
       _webSocket.add(jsonEncode(message));
 
       print("🔗 Drone connection requests sent: $droneConnections");
-      LogManager()
-          .addLog("🔗 Drone connection requests sent: $droneConnections");
+      LogManager().addLog("🔗 Drone connection requests sent: $droneConnections");
     } catch (e) {
       print("❌ Error sending drone connection requests: $e");
       LogManager().addLog("❌ Error sending drone connection requests: $e");
@@ -248,10 +202,13 @@ class WebSocketService {
           ..clear()
           ..addEntries(telemetryList.map((drone) =>
               MapEntry(drone["drone_id"], Map<String, dynamic>.from(drone))));
-        _telemetryStreamController.add(null);    // notify listeners
+        _telemetryStreamController.add(null); // notify listeners
       } else if (message["command"] == "log") {
         String logMessage = message["message"];
         serverLogs.add(logMessage);
+        if (serverLogs.length > _maxServerLogs) {
+          serverLogs.removeRange(0, serverLogs.length - _maxServerLogs);
+        }
         _serverLogStreamController.add(List.from(serverLogs));
 
         print("📜 Server Log: $logMessage");
@@ -271,7 +228,6 @@ class WebSocketService {
     if (isConnected) {
       await _webSocket.close();
       isConnected = false;
-      _gpsUpdateTimer?.cancel();
       _telemetryStreamController.close();
       _serverLogStreamController.close();
 

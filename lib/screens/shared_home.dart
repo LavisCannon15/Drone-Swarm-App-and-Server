@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
-import '../widgets/desktop_map_widget.dart'; // PC Map
+import '../widgets/desktop_map_widget.dart';
 import '../services/log_manager.dart';
 import '../widgets/map_widget.dart';
 import '../widgets/telemetry_widget.dart';
@@ -23,10 +24,11 @@ class SharedHome extends StatefulWidget {
 }
 
 class _SharedHomeState extends State<SharedHome> {
-  final GlobalKey<DesktopMapWidgetState> desktopMapKey = GlobalKey<DesktopMapWidgetState>();
+  final GlobalKey<DesktopMapWidgetState> desktopMapKey =
+      GlobalKey<DesktopMapWidgetState>();
   final GlobalKey<MapWidgetState> mobileMapKey = GlobalKey<MapWidgetState>();
 
-  bool isMapView = true; // Default to map view
+  bool isMapView = true;
 
   @override
   void initState() {
@@ -35,8 +37,6 @@ class _SharedHomeState extends State<SharedHome> {
     print("🔥 SharedHome initialized!");
     LogManager().addLog("📡 SharedHome loaded successfully.");
 
-
-    // Enable background execution
     initializeBackgroundExecution();
   }
 
@@ -55,8 +55,6 @@ class _SharedHomeState extends State<SharedHome> {
     }
   }
 
- 
-
   @override
   void dispose() {
     if (Platform.isAndroid) {
@@ -67,7 +65,9 @@ class _SharedHomeState extends State<SharedHome> {
 
   @override
   Widget build(BuildContext context) {
-    print("🔄 SharedHome is rebuilding");
+    if (kDebugMode) {
+      print("🔄 SharedHome is rebuilding");
+    }
     return Scaffold(
       drawer: Drawer(
         child: ListView(
@@ -100,7 +100,8 @@ class _SharedHomeState extends State<SharedHome> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => DroneManagementScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => DroneManagementScreen()),
                 );
               },
             ),
@@ -122,13 +123,10 @@ class _SharedHomeState extends State<SharedHome> {
         children: [
           isMapView
               ? (Platform.isAndroid
-                  ? MapWidget(key: mobileMapKey) // ✅ Pass the global key
-                  : DesktopMapWidget(key: desktopMapKey)) // ✅ Pass the global key
+                  ? MapWidget(key: mobileMapKey)
+                  : DesktopMapWidget(key: desktopMapKey))
               : XYGraphWidget(),
-          // Persistent Bottom Sheet
           DroneInfoBottomSheet(),
-
-          // Menu Button
           Positioned(
             top: 50,
             left: 20,
@@ -162,15 +160,11 @@ class _SharedHomeState extends State<SharedHome> {
               },
             ),
           ),
-
-          // Telemetry Widget (updates continuously)
           Positioned(
             top: 50,
             right: 10,
             child: TelemetryWidget(),
           ),
-
-          // Map Type Toggle
           Positioned(
             bottom: 180,
             right: 20,
@@ -183,8 +177,6 @@ class _SharedHomeState extends State<SharedHome> {
               },
             ),
           ),
-
-          // Controls
           Positioned(
             bottom: 120,
             left: 20,
@@ -192,7 +184,8 @@ class _SharedHomeState extends State<SharedHome> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ModeSelector(onModeSelected: (mode) => print("Mode Selected: $mode")),
+                ModeSelector(
+                    onModeSelected: (mode) => print("Mode Selected: $mode")),
                 SizedBox(height: 20),
                 TakeOffLandButton(),
                 SizedBox(height: 20),
@@ -200,15 +193,13 @@ class _SharedHomeState extends State<SharedHome> {
               ],
             ),
           ),
-
-          // Recenter Button
           Positioned(
             bottom: 120,
             right: 20,
             child: RecenterButton(
               desktopMapKey: desktopMapKey,
               mobileMapKey: mobileMapKey,
-            )
+            ),
           ),
         ],
       ),

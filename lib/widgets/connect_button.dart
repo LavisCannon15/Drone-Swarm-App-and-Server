@@ -15,6 +15,7 @@ class _ConnectButtonState extends State<ConnectButton> {
   final WebSocketService webSocketService = WebSocketService();
   String connectionStatus = "Not Connected";
   List<String> droneConnections = [];
+  Timer? _connectionMonitorTimer;
 
   @override
   void initState() {
@@ -24,7 +25,8 @@ class _ConnectButtonState extends State<ConnectButton> {
   }
 
   void _monitorWebSocketConnection() {
-    Timer.periodic(Duration(seconds: 2), (timer) {
+    _connectionMonitorTimer?.cancel();
+    _connectionMonitorTimer = Timer.periodic(Duration(seconds: 2), (timer) {
       if (mounted) {
         String newStatus =
             webSocketService.isConnected ? "Connected via WebSocket" : "Not Connected";
@@ -51,7 +53,7 @@ class _ConnectButtonState extends State<ConnectButton> {
     });
   }
 
-    /// Sends a UDP broadcast and waits up to [timeout] for a SERVER_RESPONSE:<ip>
+  /// Sends a UDP broadcast and waits up to [timeout] for a SERVER_RESPONSE:<ip>
   Future<String?> discoverServer({Duration timeout = const Duration(seconds: 5)}) async {
     const int DISCOVERY_PORT = 5000;
     const String DISCOVERY_MSG = 'DISCOVER_SERVER_REQUEST';
@@ -103,10 +105,8 @@ class _ConnectButtonState extends State<ConnectButton> {
 
       String serverUrl;
       if (ip != null) {
-        // found via discovery
         serverUrl = 'ws://$ip:5000';
       } else {
-        // 2️⃣ Fallback to manual entry from settings
         final prefs = await SharedPreferences.getInstance();
         final manual = prefs.getString('serverAddress') ?? '';
         if (manual.isEmpty) {
@@ -136,9 +136,8 @@ class _ConnectButtonState extends State<ConnectButton> {
         LogManager().addLog("❌ Connection failed: $e");
         setState(() => connectionStatus = "Connection Failed");
       }
-
     } else {
-      // Non-Android unchanged
+      // Non-Android fallback
       try {
         if (!webSocketService.isConnected) {
           await webSocketService.connect("ws://127.0.0.1:5000");
@@ -150,7 +149,8 @@ class _ConnectButtonState extends State<ConnectButton> {
             connectionStatus = "Connected via WebSocket";
           });
           print("📡 WebSocket Drone Connections Sent: $droneConnections");
-          LogManager().addLog("📡 WebSocket Drone Connections Sent: $droneConnections");
+          LogManager()
+              .addLog("📡 WebSocket Drone Connections Sent: $droneConnections");
         } else {
           setState(() {
             connectionStatus = "WebSocket Connection Failed";
@@ -166,6 +166,11 @@ class _ConnectButtonState extends State<ConnectButton> {
     }
   }
 
+  @override
+  void dispose() {
+    _connectionMonitorTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

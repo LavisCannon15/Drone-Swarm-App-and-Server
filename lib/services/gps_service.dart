@@ -26,13 +26,36 @@ class GPSService {
   double? lastLongitude;
   double? lastSpeed;
 
-  void _initGPSService() async {
+  // Cached SharedPreferences values
+  double _offsetDistance = 4.0;
+  double _revolveSpeed = 3.0;
+  double _revolveOffsetDistance = 4.0;
+  double _swapPositionSpeed = 1.0;
+  String _selectedMode = "Normal";
+
+  Future<void> _initGPSService() async {
+    await _loadPreferences();
     if (!await _checkLocationServices()) return;
     if (!await _checkPermissions()) return;
 
     _startGPSTracking();
     _startUIUpdateTimer();
   }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _offsetDistance =
+        double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
+    _revolveSpeed =
+        double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 3.0;
+    _revolveOffsetDistance =
+        double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
+    _swapPositionSpeed =
+        double.tryParse(prefs.getString('swapPositionSpeed') ?? '') ?? 1.0;
+    _selectedMode = prefs.getString('selectedMode') ?? "Normal";
+  }
+
+  Future<void> refreshSettings() async => _loadPreferences();
 
   Future<bool> _checkLocationServices() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -84,9 +107,9 @@ class GPSService {
     });
   }
 
-  void _updateLocationStream() async {
+  void _updateLocationStream() {
     if (lastLatitude == null || lastLongitude == null) return;
-    if (lastSpeed == speed) return;  // Prevent redundant updates
+    if (lastSpeed == speed) return; // Prevent redundant updates
     lastSpeed = speed;
 
     final gpsData = {
@@ -95,36 +118,27 @@ class GPSService {
       "speed": speed.toStringAsFixed(2),
     };
 
-    // Retrieve settings from SharedPreferences like simulated GPS service does
-    final prefs = await SharedPreferences.getInstance();
-    double offsetDistance = double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
-    double revolveSpeed = double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 3.0;
-    double revolveOffsetDistance = double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
-    double swapPositionSpeed = double.tryParse(prefs.getString('swapPositionSpeed') ?? "1") ?? 1.0;
-    String selectedMode = prefs.getString('selectedMode') ?? "Normal";
-
-    // Send GPS data via WebSocket if connected
     final webSocketService = WebSocketService();
     if (webSocketService.isConnected) {
       webSocketService.sendUserGPSData(
         latitude: lastLatitude!,
         longitude: lastLongitude!,
         speed: speed,
-        offsetDistance: offsetDistance,
-        revolveSpeed: revolveSpeed,
-        revolveOffsetDistance: revolveOffsetDistance,
-        swapPositionSpeed: swapPositionSpeed,
-        selectedMode: selectedMode,
+        offsetDistance: _offsetDistance,
+        revolveSpeed: _revolveSpeed,
+        revolveOffsetDistance: _revolveOffsetDistance,
+        swapPositionSpeed: _swapPositionSpeed,
+        selectedMode: _selectedMode,
       );
     }
 
     locationStreamController.add(gpsData);
-
-    print("📡 Location Stream Updated: Lat=${lastLatitude!}, Lng=${lastLongitude!}, Speed=$speed");
+    print(
+        "📡 Location Stream Updated: Lat=${lastLatitude!}, Lng=${lastLongitude!}, Speed=$speed");
   }
 
-
-  Stream<Map<String, dynamic>> get locationStream => locationStreamController.stream;
+  Stream<Map<String, dynamic>> get locationStream =>
+      locationStreamController.stream;
 
   void dispose() {
     gpsSubscription?.cancel();
