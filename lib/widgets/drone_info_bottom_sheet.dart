@@ -23,7 +23,10 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   void initState() {
     super.initState();
     _telemetrySubscription =
-        webSocketService.telemetryStream.listen((_) => refreshDroneTelemetry());
+        webSocketService.telemetryStream.listen((_) {
+      if (!mounted) return;
+      refreshDroneTelemetry();
+    });
 
     print("📡 Started telemetry updates");
     LogManager().addLog("📡 Started telemetry updates");

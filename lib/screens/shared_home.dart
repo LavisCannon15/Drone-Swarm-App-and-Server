@@ -18,6 +18,7 @@ import 'settings_screen.dart';
 import 'drone_management_screen.dart';
 import 'console_screen.dart';
 import '../services/websocket_service.dart';
+import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
 class SharedHome extends StatefulWidget {
@@ -38,7 +39,9 @@ class _SharedHomeState extends State<SharedHome> {
   void initState() {
     super.initState();
 
-    print("🔥 SharedHome initialized!");
+    if (kDebugMode) {
+      print("🔥 SharedHome initialized!");
+    }
     LogManager().addLog("📡 SharedHome loaded successfully.");
 
     initializeBackgroundExecution();
@@ -52,7 +55,9 @@ class _SharedHomeState extends State<SharedHome> {
         if (success) {
           FlutterBackground.enableBackgroundExecution();
         } else {
-          print("❌ Failed to enable background execution.");
+          if (kDebugMode) {
+            print("❌ Failed to enable background execution.");
+          }
           LogManager().addLog("❌ Failed to enable background execution.");
         }
       }
@@ -63,9 +68,12 @@ class _SharedHomeState extends State<SharedHome> {
   void dispose() {
     WebSocketService().dispose();
     LogManager().dispose();
+    GPSService().dispose();
+    simulatedGPSService.dispose();
     if (Platform.isAndroid) {
       FlutterBackground.disableBackgroundExecution();
     }
+    // Dispose of any additional background services here as they are added.
     super.dispose();
   }
 
@@ -191,7 +199,9 @@ class _SharedHomeState extends State<SharedHome> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ModeSelector(
-                    onModeSelected: (mode) => print("Mode Selected: $mode")),
+                    onModeSelected: (mode) {
+                  LogManager().addLog('Mode Selected: $mode');
+                }),
                 SizedBox(height: 20),
                 TakeOffLandButton(),
                 SizedBox(height: 20),

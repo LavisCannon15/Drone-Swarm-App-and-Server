@@ -8,38 +8,6 @@ from drone_operations import operate_drones
 from global_vars import stop_operations_event
 
 
-# ----------------------------
-# UDP Discovery Listener
-# ----------------------------
-def get_local_ip():
-    """Get this machine’s local LAN IP address."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # connect to a public DNS server to force selection of the correct interface
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-    finally:
-        s.close()
-
-def udp_discovery_listener():
-    """Listen for UDP broadcasts and reply with our IP."""
-    DISCOVERY_PORT = 5000
-    DISCOVERY_MSG = "DISCOVER_SERVER_REQUEST"
-    RESPONSE_PREFIX = "SERVER_RESPONSE:"
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(("0.0.0.0", DISCOVERY_PORT))
-
-    while True:
-        data, addr = sock.recvfrom(1024)
-        if data.decode().strip() == DISCOVERY_MSG:
-            ip = get_local_ip()
-            resp = f"{RESPONSE_PREFIX}{ip}"
-            sock.sendto(resp.encode(), addr)
-
-# Start the UDP listener in a background thread
-threading.Thread(target=udp_discovery_listener, daemon=True).start()
-
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings

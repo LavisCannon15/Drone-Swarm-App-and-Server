@@ -132,13 +132,28 @@ class WebSocketService {
     String swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? "1";
     String selectedMode = prefs.getString('selectedMode') ?? "Normal";
 
+    double _parseParam(String value, double defaultValue, String name) {
+      final parsed = double.tryParse(value);
+      if (parsed == null) {
+        final message =
+            "⚠️ Invalid $name value '$value'. Using default $defaultValue.";
+        print(message);
+        LogManager().addLog(message);
+        return defaultValue;
+      }
+      return parsed;
+    }
+
+
     Map<String, dynamic> commandData = {
-      "takeoff_altitude": double.parse(takeoffAltitude),
-      "target_altitude": double.parse(targetAltitude),
-      "offset_distance": double.parse(offsetDistance),
-      "revolve_speed": double.parse(revolveSpeed),
-      "revolve_offset_distance": double.parse(revolveOffsetDistance),
-      "swap_position_speed": double.parse(swapPositionSpeed),
+      "takeoff_altitude": _parseParam(takeoffAltitude, 3.0, 'takeoff_altitude'),
+      "target_altitude": _parseParam(targetAltitude, 1.0, 'target_altitude'),
+      "offset_distance": _parseParam(offsetDistance, 4.0, 'offset_distance'),
+      "revolve_speed": _parseParam(revolveSpeed, 3.0, 'revolve_speed'),
+      "revolve_offset_distance":
+          _parseParam(revolveOffsetDistance, 4.0, 'revolve_offset_distance'),
+      "swap_position_speed":
+          _parseParam(swapPositionSpeed, 1.0, 'swap_position_speed'),
       "orbit_around_user": selectedMode == "Orbit",
       "swap_positions": selectedMode == "Swap Positions",
       "rotate_triangle_formation": selectedMode == "Rotate Triangle"

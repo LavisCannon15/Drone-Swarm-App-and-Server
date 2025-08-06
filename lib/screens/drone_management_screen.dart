@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/log_manager.dart';
-import '../services/network_discovery.dart'; // <-- import
 
 class DroneManagementScreen extends StatefulWidget {
   @override
@@ -28,7 +27,6 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
     super.dispose();
   }
 
-
   Future<void> _loadDrones() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('drones') ?? [];
@@ -45,7 +43,6 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
       }
     });
   }
-
 
   Future<void> _saveDrones() async {
     final prefs = await SharedPreferences.getInstance();
@@ -74,58 +71,14 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
     LogManager().addLog("Cleared all saved drones.");
   }
 
-  Future<void> _scanForDrones() async {
-    // 1) trigger the scan
-    final ips = await DroneDiscoveryService.discover();
-
-    // 2) show them in a popup
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Discovered Drones'),
-        content: ips.isEmpty
-            ? Text('No drones found on this network.')
-            : Container(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: ips.length,
-                  itemBuilder: (_, i) {
-                    final ip = ips[i];
-                    return ListTile(
-                      title: Text(ip),
-                      trailing: IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: () {
-                          setState(() {
-                            drones.add({
-                              'name': 'Drone ${drones.length + 1}',
-                              'ip': ip,
-                            });
-                          });
-                          _saveDrones();
-                          Navigator.of(context).pop(); // or just remove that entry
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('Close')),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Manage Drones"),
+        title: const Text("Manage Drones"),
         actions: [
           IconButton(
-            icon: Icon(Icons.delete),
+            icon: const Icon(Icons.delete),
             tooltip: "Clear All Drones (Debug)",
             onPressed: _clearDrones,
           ),
@@ -135,33 +88,30 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Manual IP entry
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _ipController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: "Drone IP Address",
                       hintText: "e.g., 192.168.1.50:14550",
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
-                ElevatedButton(onPressed: _addDrone, child: Text("Add")),
+                const SizedBox(width: 10),
+                ElevatedButton(onPressed: _addDrone, child: const Text("Add")),
               ],
             ),
-            SizedBox(height: 20),
-
-            // Saved drones list
+            const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
                 itemCount: drones.length,
                 itemBuilder: (_, index) {
                   final drone = drones[index];
                   return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
                       leading: Image.asset(
                         "assets/icons/drone_marker.png",
@@ -171,7 +121,7 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
                       title: Text(drone["name"]!),
                       subtitle: Text("IP: ${drone["ip"]}"),
                       trailing: IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
                           setState(() => drones.removeAt(index));
                           _saveDrones();
@@ -183,16 +133,6 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
               ),
             ),
           ],
-        ),
-      ),
-      // Scan button fixed at bottom of screen
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton.icon(
-          icon: Icon(Icons.wifi_tethering),
-          label: Text("Scan for Drones"),
-          onPressed: _scanForDrones,
-          style: ElevatedButton.styleFrom(minimumSize: Size.fromHeight(50)),
         ),
       ),
     );

@@ -46,11 +46,17 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   void initializeCameraPosition() async {
-    final locationData = await gpsService.locationStream.first;
+    Map<String, dynamic>? locationData;
+    try {
+      locationData = await gpsService.locationStream.first
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      locationData = null;
+    }
     if (!mounted) return;
     setState(() {
-      latitude = locationData['latitude'];
-      longitude = locationData['longitude'];
+      latitude = locationData?['latitude'];
+      longitude = locationData?['longitude'];
       isGPSReady = true;
     });
   }
@@ -64,14 +70,20 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   void recenterOnUser() async {
-    final locationData = await gpsService.locationStream.first;
+    Map<String, dynamic>? locationData;
+    try {
+      locationData = await gpsService.locationStream.first
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      locationData = null;
+    }
     if (!mounted) return;
     if (_mapController != null &&
-        locationData['latitude'] != null &&
-        locationData['longitude'] != null) {
+        locationData?['latitude'] != null &&
+        locationData?['longitude'] != null) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(
-          LatLng(locationData['latitude'], locationData['longitude']),
+          LatLng(locationData!['latitude'], locationData['longitude']),
           18.0,
         ),
       );
