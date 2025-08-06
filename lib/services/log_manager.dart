@@ -39,4 +39,9 @@ class LogManager {
     _logs.clear();
     _logStreamController.add([]);
   }
+
+  void dispose() {
+    _logStreamController.close();
+  }
+
 }

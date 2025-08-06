@@ -17,6 +17,7 @@ import '../widgets/map_type_button.dart';
 import 'settings_screen.dart';
 import 'drone_management_screen.dart';
 import 'console_screen.dart';
+import '../services/websocket_service.dart';
 
 class SharedHome extends StatefulWidget {
   @override
@@ -57,6 +58,8 @@ class _SharedHomeState extends State<SharedHome> {
 
   @override
   void dispose() {
+    WebSocketService().dispose();
+    LogManager().dispose();
     if (Platform.isAndroid) {
       FlutterBackground.disableBackgroundExecution();
     }

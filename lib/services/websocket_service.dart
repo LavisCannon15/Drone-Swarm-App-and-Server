@@ -241,5 +241,10 @@ class WebSocketService {
       LogManager().addLog("🔌 Disconnected from WebSocket.");
     }
   }
+
+  void dispose() {
+    _telemetryStreamController.close();
+    _serverLogStreamController.close();
+  }
 }
 
