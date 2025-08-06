@@ -32,13 +32,20 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
   Future<void> _loadDrones() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('drones') ?? [];
+    if (!mounted) return;
     setState(() {
-      drones = saved.map((e) {
+      drones = [];
+      for (final e in saved) {
         final parts = e.split(';');
-        return {'name': parts[0], 'ip': parts[1]};
-      }).toList();
+        if (parts.length < 2) {
+          LogManager().addLog('Malformed drone entry: $e');
+          continue;
+        }
+        drones.add({'name': parts[0], 'ip': parts[1]});
+      }
     });
   }
+
 
   Future<void> _saveDrones() async {
     final prefs = await SharedPreferences.getInstance();
@@ -62,6 +69,7 @@ class _DroneManagementScreenState extends State<DroneManagementScreen> {
   Future<void> _clearDrones() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('drones');
+    if (!mounted) return;
     setState(() => drones.clear());
     LogManager().addLog("Cleared all saved drones.");
   }

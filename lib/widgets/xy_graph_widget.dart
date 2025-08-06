@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:latlong2/latlong.dart';
@@ -80,7 +81,9 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print("🔄 XYGraphWidget rebuilding at ${DateTime.now().toIso8601String()}");
+    if (kDebugMode) {
+      print("🔄 XYGraphWidget rebuilding at ${DateTime.now().toIso8601String()}");
+    }
 
     double centerLongitude = userLocation.longitude;
     double centerLatitude = userLocation.latitude;

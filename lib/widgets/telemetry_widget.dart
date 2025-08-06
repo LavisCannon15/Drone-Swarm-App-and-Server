@@ -28,6 +28,7 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
   void startLocationUpdates() {
     if (Platform.isAndroid || Platform.isIOS) {
       _subscription = gpsService.locationStream.listen((locationData) {
+        if (!mounted) return;
         setState(() {
           latitude = locationData["latitude"] ?? 0.0;
           longitude = locationData["longitude"] ?? 0.0;
@@ -35,7 +36,8 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
         });
       });
     } else {
-        _subscription = simulatedGPSService.locationStream.listen((locationData) {
+      _subscription = simulatedGPSService.locationStream.listen((locationData) {
+        if (!mounted) return;
         setState(() {
           latitude = locationData["latitude"] ?? 0.0;
           longitude = locationData["longitude"] ?? 0.0;

@@ -45,6 +45,7 @@ class _ConnectButtonState extends State<ConnectButton> {
     print("📥 Loaded drone connections: $savedDrones");
     LogManager().addLog("📥 Loaded drone connections: $savedDrones");
 
+    if (!mounted) return;
     setState(() {
       final connections = <String>[];
       for (final droneData in savedDrones) {
@@ -117,15 +118,18 @@ class _ConnectButtonState extends State<ConnectButton> {
         final prefs = await SharedPreferences.getInstance();
         final manual = prefs.getString('serverAddress') ?? '';
         if (manual.isEmpty) {
+          if (!mounted) return;
           setState(() => connectionStatus = "Server not found");
           return;
         }
         serverUrl = manual;
+        if (!mounted) return;
         setState(() => connectionStatus = "Using manual URL");
         LogManager().addLog("🔗 Fallback to manual URL: $serverUrl");
       }
 
       // 3️⃣ Connect over WebSocket
+      if (!mounted) return;
       setState(() => connectionStatus = "Connecting to $serverUrl");
       try {
         if (!webSocketService.isConnected) {
@@ -134,13 +138,16 @@ class _ConnectButtonState extends State<ConnectButton> {
         await webSocketService.connectToDrones(droneConnections);
 
         if (webSocketService.isConnected) {
+          if (!mounted) return;
           setState(() => connectionStatus = "Connected via WebSocket");
           LogManager().addLog("📡 Drone connections sent: $droneConnections");
         } else {
+          if (!mounted) return;
           setState(() => connectionStatus = "WebSocket Connection Failed");
         }
       } catch (e) {
         LogManager().addLog("❌ Connection failed: $e");
+        if (!mounted) return;
         setState(() => connectionStatus = "Connection Failed");
       }
     } else {
@@ -152,6 +159,7 @@ class _ConnectButtonState extends State<ConnectButton> {
         await webSocketService.connectToDrones(droneConnections);
 
         if (webSocketService.isConnected) {
+          if (!mounted) return;
           setState(() {
             connectionStatus = "Connected via WebSocket";
           });
@@ -159,6 +167,7 @@ class _ConnectButtonState extends State<ConnectButton> {
           LogManager()
               .addLog("📡 WebSocket Drone Connections Sent: $droneConnections");
         } else {
+          if (!mounted) return;
           setState(() {
             connectionStatus = "WebSocket Connection Failed";
           });
@@ -166,6 +175,7 @@ class _ConnectButtonState extends State<ConnectButton> {
       } catch (e) {
         print("❌ WebSocket connection failed: $e");
         LogManager().addLog("❌ WebSocket connection failed: $e");
+        if (!mounted) return;
         setState(() {
           connectionStatus = "WebSocket Connection Failed";
         });

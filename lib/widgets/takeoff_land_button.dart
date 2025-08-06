@@ -19,6 +19,7 @@ class _TakeOffLandButtonState extends State<TakeOffLandButton> {
     }
 
     // Toggle the button state
+    if (!mounted) return;
     setState(() {
       isTakeOff = !isTakeOff;
     });

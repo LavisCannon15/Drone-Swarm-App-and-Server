@@ -68,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       takeoffAltitude =
           prefs.getString('takeoffAltitude') ?? defaultSettings['takeoffAltitude']!;
@@ -148,11 +149,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await FMTCStore('carto_cache').manage.reset();
       print("🗑️ Cache cleared!");
       LogManager().addLog("🗑️ Cache cleared successfully!");
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Cache cleared successfully!")));
     } catch (e) {
       print("❌ Failed to clear cache: $e");
       LogManager().addLog("❌ Failed to clear cache: $e");
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Failed to clear cache!")));
     }

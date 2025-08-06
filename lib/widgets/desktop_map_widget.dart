@@ -23,7 +23,6 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   bool isLoadingCache = true;
 
   final GPSService gpsService = GPSService();
-  final SimulatedGPSService simulatedGPSService = SimulatedGPSService();
   final WebSocketService webSocketService = WebSocketService();
 
   LatLng userLocation = LatLng(0.0, 0.0);
@@ -58,7 +57,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   void _startLocationUpdates() {
     final stream = (Platform.isAndroid || Platform.isIOS)
         ? gpsService.locationStream
-        : simulatedGPSService.locationStream;
+        : SimulatedGPSService().locationStream;
 
     _locationSubscription = stream.listen((locationData) {
       if (!mounted) return;
@@ -99,7 +98,6 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   void dispose() {
     _locationSubscription?.cancel();
     _telemetrySubscription?.cancel();
-    simulatedGPSService.dispose();
     super.dispose();
   }
 

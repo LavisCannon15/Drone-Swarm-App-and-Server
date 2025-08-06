@@ -5,7 +5,7 @@ import '../services/log_manager.dart';
 class ModeSelector extends StatefulWidget {
   final Function(String) onModeSelected;
 
-  ModeSelector({required this.onModeSelected});
+  const ModeSelector({super.key, required this.onModeSelected});
 
   @override
   _ModeSelectorState createState() => _ModeSelectorState();
@@ -31,6 +31,7 @@ class _ModeSelectorState extends State<ModeSelector> {
       savedMode = "Normal";
     }
 
+    if (!mounted) return;
     setState(() {
       selectedMode = savedMode;
     });
@@ -42,6 +43,7 @@ class _ModeSelectorState extends State<ModeSelector> {
       onPressed: () async {
         final mode = await _showModeSelectorDialog(context);
         if (mode != null) {
+          if (!mounted) return;
           setState(() {
             selectedMode = mode;
           });

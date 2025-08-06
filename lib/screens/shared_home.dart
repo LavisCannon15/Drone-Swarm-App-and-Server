@@ -18,6 +18,7 @@ import 'settings_screen.dart';
 import 'drone_management_screen.dart';
 import 'console_screen.dart';
 import '../services/websocket_service.dart';
+import '../services/simulated_gps_service.dart';
 
 class SharedHome extends StatefulWidget {
   @override
@@ -28,6 +29,8 @@ class _SharedHomeState extends State<SharedHome> {
   final GlobalKey<DesktopMapWidgetState> desktopMapKey =
       GlobalKey<DesktopMapWidgetState>();
   final GlobalKey<MapWidgetState> mobileMapKey = GlobalKey<MapWidgetState>();
+
+  final SimulatedGPSService simulatedGPSService = SimulatedGPSService();
 
   bool isMapView = true;
 

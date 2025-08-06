@@ -47,6 +47,7 @@ class MapWidgetState extends State<MapWidget> {
 
   void initializeCameraPosition() async {
     final locationData = await gpsService.locationStream.first;
+    if (!mounted) return;
     setState(() {
       latitude = locationData['latitude'];
       longitude = locationData['longitude'];
@@ -64,6 +65,7 @@ class MapWidgetState extends State<MapWidget> {
 
   void recenterOnUser() async {
     final locationData = await gpsService.locationStream.first;
+    if (!mounted) return;
     if (_mapController != null &&
         locationData['latitude'] != null &&
         locationData['longitude'] != null) {
@@ -115,7 +117,7 @@ class MapWidgetState extends State<MapWidget> {
       }
     });
 
-    if (updated) {
+    if (updated && mounted) {
       setState(() {});
     }
   }

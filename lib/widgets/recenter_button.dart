@@ -7,17 +7,14 @@ class RecenterButton extends StatelessWidget {
   final GlobalKey<MapWidgetState>? mobileMapKey;
   final GlobalKey<DesktopMapWidgetState>? desktopMapKey;
 
-  RecenterButton({
-    this.mobileMapKey,
-    this.desktopMapKey,
-  });
+  const RecenterButton({this.mobileMapKey, this.desktopMapKey, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 45,
       height: 45,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
@@ -29,7 +26,7 @@ class RecenterButton extends StatelessWidget {
         ],
       ),
       child: IconButton(
-        icon: Icon(
+        icon: const Icon(
           Icons.location_searching,
           color: Colors.black,
           size: 24,
