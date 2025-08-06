@@ -53,7 +53,6 @@ class _ModeSelectorState extends State<ModeSelector> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('selectedMode', mode);
 
-          print("🎛️ Mode changed to: $mode");
           LogManager().addLog("🎛️ Mode changed to: $mode");
         }
       },
@@ -82,7 +81,6 @@ class _ModeSelectorState extends State<ModeSelector> {
   Widget _buildModeOption(BuildContext context, String mode) {
     return SimpleDialogOption(
       onPressed: () {
-        print("📌 Mode selected: $mode");
         LogManager().addLog("📌 Mode selected: $mode");
         Navigator.pop(context, mode);
       },

@@ -53,7 +53,7 @@ async def send_telemetry():
             "data": telemetry_data
         })
 
-        for client in server_log_clients:
+        for client in list(server_log_clients):
             try:
                 await client.send(telemetry_message)
             except websockets.exceptions.ConnectionClosed:

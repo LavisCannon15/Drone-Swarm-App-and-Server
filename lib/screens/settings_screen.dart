@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'dart:io';
@@ -94,8 +95,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       serverAddressController.text = serverAddress;
     });
 
-    print(
-        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+  
+    if (kDebugMode) {
+      print(
+          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+    }
     LogManager().addLog(
         "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
   }
@@ -139,7 +143,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await _saveSettings(); // Save default values
 
-    print("🔄 Settings reset to default!");
+    if (kDebugMode) {
+      print("🔄 Settings reset to default!");
+    }
     LogManager().addLog("🔄 Settings reset to default!");
   }
 
@@ -147,13 +153,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _clearCache() async {
     try {
       await FMTCStore('carto_cache').manage.reset();
-      print("🗑️ Cache cleared!");
+      if (kDebugMode) {
+        print("🗑️ Cache cleared!");
+      }
       LogManager().addLog("🗑️ Cache cleared successfully!");
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Cache cleared successfully!")));
     } catch (e) {
-      print("❌ Failed to clear cache: $e");
+      if (kDebugMode) {
+        print("❌ Failed to clear cache: $e");
+      }
       LogManager().addLog("❌ Failed to clear cache: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context)

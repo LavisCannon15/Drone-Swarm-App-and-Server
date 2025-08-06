@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import '../services/log_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WebSocketService {
@@ -27,7 +28,7 @@ class WebSocketService {
   Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
   static const int _maxServerLogs = 500;
 
-    void addServerLog(String logMessage) {
+  void addServerLog(String logMessage) {
     serverLogs.add(logMessage);
     if (serverLogs.length > _maxServerLogs) {
       serverLogs.removeRange(0, serverLogs.length - _maxServerLogs);
@@ -46,7 +47,9 @@ class WebSocketService {
       _webSocket = await WebSocket.connect(url);
       isConnected = true;
 
-      print("✅ Connected to WebSocket: $url");
+      if (kDebugMode) {
+        print("✅ Connected to WebSocket: $url");
+      }
       LogManager().addLog("✅ Connected to WebSocket: $url");
 
       // Subscribe to logs
@@ -55,18 +58,24 @@ class WebSocketService {
       _webSocket.listen(
         (data) => _handleIncomingMessage(data), // Process incoming messages
         onDone: () {
-          print("🔌 WebSocket connection closed.");
+          if (kDebugMode) {
+            print("🔌 WebSocket connection closed.");
+          }
           LogManager().addLog("🔌 WebSocket connection closed.");
           isConnected = false;
         },
         onError: (error) {
-          print("❌ WebSocket error: $error");
+          if (kDebugMode) {
+            print("❌ WebSocket error: $error");
+          }
           LogManager().addLog("❌ WebSocket error: $error.");
           isConnected = false;
         },
       );
     } catch (e) {
-      print("⚠️ Failed to connect to WebSocket: $e");
+      if (kDebugMode) {
+        print("⚠️ Failed to connect to WebSocket: $e");
+      }
       LogManager().addLog("⚠️ Failed to connect to WebSocket: $e");
     }
   }
@@ -117,7 +126,9 @@ class WebSocketService {
   // Send start operations command (Takeoff)
   Future<void> sendStartOperations() async {
     if (!isConnected) {
-      print("⚠️ WebSocket is not connected.");
+      if (kDebugMode) {
+        print("⚠️ WebSocket is not connected.");
+      }
       LogManager().addLog("⚠️ WebSocket is not connected.");
       return;
     }
@@ -137,7 +148,9 @@ class WebSocketService {
       if (parsed == null) {
         final message =
             "⚠️ Invalid $name value '$value'. Using default $defaultValue.";
-        print(message);
+        if (kDebugMode) {
+          print(message);
+        }
         LogManager().addLog(message);
         return defaultValue;
       }
@@ -161,28 +174,36 @@ class WebSocketService {
 
     sendCommand("start_operations", commandData);
 
-    print("🚀 Sent Start Operations Command: $commandData");
+    if (kDebugMode) {
+      print("🚀 Sent Start Operations Command: $commandData");
+    }
     LogManager().addLog("🚀 Sent Start Operations Command: $commandData");
   }
 
   // Send stop operations command (Landing)
   Future<void> sendStopOperations() async {
     if (!isConnected) {
-      print("⚠️ WebSocket is not connected.");
+      if (kDebugMode) {
+        print("⚠️ WebSocket is not connected.");
+      }
       LogManager().addLog("⚠️ WebSocket is not connected.");
       return;
     }
 
     sendCommand("stop_operations", {});
 
-    print("🛬 Sent Stop Operations Command");
+    if (kDebugMode) {
+      print("🛬 Sent Stop Operations Command");
+    }
     LogManager().addLog("🛬 Sent Stop Operations Command");
   }
 
   // Send command to WebSocket server
   Future<void> sendCommand(String command, Map<String, dynamic> params) async {
     if (!isConnected) {
-      print("⚠️ WebSocket not connected.");
+      if (kDebugMode) {
+        print("⚠️ WebSocket not connected.");
+      }
       LogManager().addLog("⚠️ WebSocket not connected.");
       return;
     }
@@ -192,14 +213,18 @@ class WebSocketService {
     };
     _webSocket.add(jsonEncode(message));
 
-    print("🚀 Sent command: $message");
+    if (kDebugMode) {
+      print("🚀 Sent command: $message");
+    }
     LogManager().addLog("🚀 Sent command: $message");
   }
 
   // Send connection requests to drones
   Future<void> connectToDrones(List<String> droneConnections) async {
     if (!isConnected) {
-      print("⚠️ WebSocket not connected.");
+      if (kDebugMode) {
+        print("⚠️ WebSocket not connected.");
+      }
       LogManager().addLog("⚠️ WebSocket not connected.");
       return;
     }
@@ -211,10 +236,14 @@ class WebSocketService {
       };
       _webSocket.add(jsonEncode(message));
 
-      print("🔗 Drone connection requests sent: $droneConnections");
+      if (kDebugMode) {
+        print("🔗 Drone connection requests sent: $droneConnections");
+      }
       LogManager().addLog("🔗 Drone connection requests sent: $droneConnections");
     } catch (e) {
-      print("❌ Error sending drone connection requests: $e");
+      if (kDebugMode) {
+        print("❌ Error sending drone connection requests: $e");
+      }
       LogManager().addLog("❌ Error sending drone connection requests: $e");
     }
   }
@@ -235,14 +264,21 @@ class WebSocketService {
         String logMessage = message["message"];
         addServerLog(logMessage);
 
-        print("📜 Server Log: $logMessage");
+        if (kDebugMode) {
+          print("📜 Server Log: $logMessage");
+        }
         LogManager().addLog("📜 Server Log: $logMessage");
       } else {
-        print("📩 Received: $message");
+
+        if (kDebugMode) {
+          print("📩 Received: $message");
+        }
         LogManager().addLog("📩 Received: $message");
       }
     } catch (e) {
-      print("❌ Failed to decode WebSocket message: $e");
+      if (kDebugMode) {
+        print("❌ Failed to decode WebSocket message: $e");
+      }
       LogManager().addLog("❌ Failed to decode WebSocket message: $e");
     }
   }
@@ -252,7 +288,9 @@ class WebSocketService {
     if (isConnected) {
       await _webSocket.close();
       isConnected = false;
-      print("🔌 Disconnected from WebSocket.");
+      if (kDebugMode) {
+        print("🔌 Disconnected from WebSocket.");
+      }
       LogManager().addLog("🔌 Disconnected from WebSocket.");
     }
   }

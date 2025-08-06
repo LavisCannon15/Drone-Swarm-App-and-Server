@@ -24,7 +24,6 @@ class _TakeOffLandButtonState extends State<TakeOffLandButton> {
       isTakeOff = !isTakeOff;
     });
 
-    print("🔄 Button toggled: Now ${isTakeOff ? "Take Off" : "Land"}");
     LogManager().addLog("🔄 Button toggled: Now ${isTakeOff ? "Take Off" : "Land"}");
   }
 

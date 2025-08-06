@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../services/websocket_service.dart';
 import 'package:latlong2/latlong.dart' as latlong2;
 import '../services/log_manager.dart';
@@ -28,7 +29,9 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
       refreshDroneTelemetry();
     });
 
-    print("📡 Started telemetry updates");
+    if (kDebugMode) {
+      print("📡 Started telemetry updates");
+    }
     LogManager().addLog("📡 Started telemetry updates");
   }
 

@@ -145,7 +145,7 @@ class MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isGPSReady) {
+    if (!isGPSReady || latitude == null || longitude == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
