@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
 import '../services/log_manager.dart';
@@ -37,7 +38,7 @@ class _ConnectButtonState extends State<ConnectButton> {
   Future<void> _loadDroneConnections() async {
     final prefs = await SharedPreferences.getInstance();
     final savedDrones = prefs.getStringList('drones') ?? [];
-    print("📥 Loaded drone connections: $savedDrones");
+    if (kDebugMode) print("📥 Loaded drone connections: $savedDrones");
     LogManager().addLog("📥 Loaded drone connections: $savedDrones");
 
     if (!mounted) return;
@@ -48,7 +49,7 @@ class _ConnectButtonState extends State<ConnectButton> {
         if (parts.length >= 2) {
           connections.add(parts[1]);
         } else {
-          print("⚠️ Invalid drone entry: $droneData");
+          if (kDebugMode) print("⚠️ Invalid drone entry: $droneData");
           LogManager().addLog("⚠️ Invalid drone entry: $droneData");
         }
       }
@@ -59,7 +60,7 @@ class _ConnectButtonState extends State<ConnectButton> {
   Future<void> _connectToDrones() async {
     setState(() => connectionStatus = "Connecting...");
 
-    print("🔗 Attempting to connect...");
+    if (kDebugMode) print("🔗 Attempting to connect...");
     LogManager().addLog("🔗 Attempting to connect...");
 
     final prefs = await SharedPreferences.getInstance();

@@ -73,6 +73,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   @override
   void dispose() {
     _telemetrySubscription?.cancel();
+    _sheetController.dispose();
     super.dispose();
   }
 

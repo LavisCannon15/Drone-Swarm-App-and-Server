@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../services/log_manager.dart';
 import '../services/websocket_service.dart';
 
@@ -99,7 +100,9 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
           WebSocketService().clearServerLogs();
 
           setState(() {});
-          print("🗑️ Console logs cleared.");
+          if (kDebugMode) {
+            print("🗑️ Console logs cleared.");
+          }
         },
 
 

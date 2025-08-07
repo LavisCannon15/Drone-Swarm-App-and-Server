@@ -53,11 +53,16 @@ class MapWidgetState extends State<MapWidget> {
     } on TimeoutException {
       locationData = null;
     }
+    if (locationData == null) {
+      debugPrint('GPS fix not acquired');
+    }
     if (!mounted) return;
     setState(() {
-      latitude = locationData?['latitude'];
-      longitude = locationData?['longitude'];
-      isGPSReady = true;
+      isGPSReady = locationData != null;
+      if (locationData != null) {
+        latitude = locationData['latitude'];
+        longitude = locationData['longitude'];
+      }
     });
   }
 

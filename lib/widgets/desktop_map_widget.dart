@@ -40,7 +40,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
     _startDroneTelemetryStream();
   }
 
-  Future<void> _initTileProvider() async {
+  void _initTileProvider() {
     setState(() => isLoadingCache = true);
 
     tileProvider = FMTCTileProvider(

@@ -1,26 +1,3 @@
-
-/**
-class SimulatedGPSService {
-  double latitude = -35.3631723; // Initial latitude
-  double longitude = 149.1652367; // Initial longitude
-  double speed = 5.0; // Simulated speed in m/s
-
-  Map<String, dynamic> getSimulatedUserLocationAndSpeed() {
-    // Simulate small changes in location for testing
-    latitude += 0.0001;
-    longitude += 0.0001;
-    speed += 0.1;
-
-    return {
-      "latitude": latitude.toStringAsFixed(4),
-      "longitude": longitude.toStringAsFixed(4),
-      "speed": speed.toStringAsFixed(2),
-    };
-  }
-}
-*/
-
-
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/websocket_service.dart';
