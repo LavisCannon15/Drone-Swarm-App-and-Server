@@ -2,9 +2,12 @@ import asyncio
 import websockets
 import json
 import threading
+import logging
 from dronekit import connect
 from drone_operations import operate_drones
 from global_vars import stop_operations_event
+
+logging.basicConfig(level=logging.INFO)
 
 
 vehicles = {}  # Store connected drones
@@ -266,7 +269,7 @@ async def log_message(message):
     """
     Logs a message to the console and broadcasts it to all subscribed WebSocket clients.
     """
-    print(message)  # ✅ Print to the server console
+    logging.info(message)
 
     message_data = json.dumps({"command": "log", "message": message})
 

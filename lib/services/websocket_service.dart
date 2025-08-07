@@ -13,6 +13,12 @@ class WebSocketService {
   late WebSocketChannel _webSocket;
   bool isConnected = false;
 
+  // Connection status stream
+  final StreamController<bool> _connectionStatusController =
+      StreamController<bool>.broadcast();
+  Stream<bool> get connectionStatusStream =>
+      _connectionStatusController.stream;
+
   String? _lastUrl;
   int _retryCount = 0;
   final int _maxRetries = 5;
@@ -61,6 +67,7 @@ class WebSocketService {
     try {
        _webSocket = WebSocketChannel.connect(Uri.parse(url));
       isConnected = true;
+      _connectionStatusController.add(true);
 
       if (kDebugMode) {
         print("✅ Connected to WebSocket: $url");
@@ -94,12 +101,14 @@ class WebSocketService {
       }
       LogManager().addLog("⚠️ Failed to connect to WebSocket: $e");
       isConnected = false;
+      _connectionStatusController.add(false);
       return false;
     }
   }
 
   void _handleDisconnect() {
     isConnected = false;
+    _connectionStatusController.add(false);
     _retryConnection();
   }
 
@@ -347,6 +356,7 @@ class WebSocketService {
     if (isConnected) {
       await _webSocket.sink.close();
       isConnected = false;
+      _connectionStatusController.add(false);
       if (kDebugMode) {
         print("🔌 Disconnected from WebSocket.");
       }
@@ -357,6 +367,7 @@ class WebSocketService {
   void dispose() {
     _telemetryStreamController.close();
     _serverLogStreamController.close();
+    _connectionStatusController.close();
   }
 }
 

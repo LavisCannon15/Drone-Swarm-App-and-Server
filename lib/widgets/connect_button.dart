@@ -16,23 +16,19 @@ class _ConnectButtonState extends State<ConnectButton> {
   final WebSocketService webSocketService = WebSocketService();
   String connectionStatus = "Not Connected";
   List<String> droneConnections = [];
-  Timer? _connectionMonitorTimer;
+  StreamSubscription<bool>? _connectionSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadDroneConnections();
-    _monitorWebSocketConnection();
-  }
-
-  void _monitorWebSocketConnection() {
-    _connectionMonitorTimer?.cancel();
-    _connectionMonitorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted) {
-        final newStatus = webSocketService.isConnected ? "Connected via WebSocket" : "Not Connected";
-        if (newStatus != connectionStatus) {
-          setState(() => connectionStatus = newStatus);
-        }
+    _connectionSubscription =
+        webSocketService.connectionStatusStream.listen((connected) {
+      if (!mounted) return;
+      final newStatus =
+          connected ? "Connected via WebSocket" : "Not Connected";
+      if (newStatus != connectionStatus) {
+        setState(() => connectionStatus = newStatus);
       }
     });
   }
@@ -99,7 +95,7 @@ class _ConnectButtonState extends State<ConnectButton> {
 
   @override
   void dispose() {
-    _connectionMonitorTimer?.cancel();
+    _connectionSubscription?.cancel();
     super.dispose();
   }
 

@@ -39,10 +39,13 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   Future<void> _loadDroneIcon() async {
-    _droneIcon = await BitmapDescriptor.fromAssetImage(
+    final icon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(size: Size(48, 48)),
       'assets/icons/drone_marker.png',
     );
+    if (!mounted) return;
+    setState(() => _droneIcon = icon);
+    _scheduleMarkerUpdate();
   }
 
   void initializeCameraPosition() async {
@@ -96,9 +99,9 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   void _scheduleMarkerUpdate() {
-  _debounceTimer?.cancel();
-  _debounceTimer = Timer(const Duration(milliseconds: 100), _updateMarkers);
-}
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 100), _updateMarkers);
+  }
 
 
   void _updateMarkers() {

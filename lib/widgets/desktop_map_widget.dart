@@ -41,12 +41,10 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   }
 
   void _initTileProvider() {
-    setState(() => isLoadingCache = true);
-
     tileProvider = FMTCTileProvider(
       stores: {'carto_cache': BrowseStoreStrategy.read},
       loadingStrategy: BrowseLoadingStrategy.cacheFirst,
-      cachedValidDuration: Duration(days: 1),
+      cachedValidDuration: const Duration(days: 1),
       useOtherStoresAsFallbackOnly: false,
       recordHitsAndMisses: false,
     );

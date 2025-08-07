@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import '../services/log_manager.dart';
@@ -188,9 +189,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Takeoff Altitude",
                 hintText: "Enter takeoff altitude (meters)",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => takeoffAltitude = value,
               controller: takeoffAltitudeController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],             
             ),
             SizedBox(height: 10),
             // Target Altitude
@@ -199,9 +205,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Target Altitude",
                 hintText: "Enter target altitude (meters)",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => targetAltitude = value,
               controller: targetAltitudeController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
             ),
             SizedBox(height: 10),
             // Offset Distance
@@ -210,9 +221,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Offset Distance",
                 hintText: "Enter offset distance (meters)",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => offsetDistance = value,
               controller: offsetDistanceController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
             ),
             SizedBox(height: 10),
             // Revolve Speed
@@ -221,9 +237,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Revolve Speed",
                 hintText: "Enter angle increment",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => revolveSpeed = value,
               controller: revolveSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
             ),
             SizedBox(height: 10),
             // Revolve Offset Distance
@@ -232,9 +253,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Revolve Offset Distance",
                 hintText: "Enter revolve offset distance (meters)",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => revolveOffsetDistance = value,
               controller: revolveOffsetDistanceController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
             ),
             SizedBox(height: 10),
             // Swap Position Speed
@@ -243,9 +269,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: "Swap Position Speed",
                 hintText: "Enter swap position speed",
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => swapPositionSpeed = value,
               controller: swapPositionSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
             ),
             SizedBox(height: 10),
             // Server Address
