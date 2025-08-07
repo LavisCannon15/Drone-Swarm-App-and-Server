@@ -7,7 +7,10 @@ from dronekit import connect
 from drone_operations import operate_drones
 from global_vars import stop_operations_event
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 
 vehicles = {}  # Store connected drones

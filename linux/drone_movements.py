@@ -1,18 +1,21 @@
 import math
 import time
+import logging
 from dronekit import LocationGlobalRelative
 from pymavlink import mavutil
+
+logger = logging.getLogger(__name__)
 
 def move_to_positions(drones, triangle_positions,kalman_user_speed, altitude):
     for drone, target_position in zip(drones, triangle_positions):
         drone_id = drone.id if hasattr(drone, 'id') else 'Unknown'
 
         #drone.airspeed = kalman_user_speed
-        print(f"{drone_id}: Moving to triangle position at {target_position}...")
+        logger.info(f"{drone_id}: Moving to triangle position at {target_position}...")
 
         drone.simple_goto(LocationGlobalRelative(target_position[0], target_position[1], altitude),kalman_user_speed)
 
-        print(f"{drone_id}: Speed {drone.airspeed:.2f} m/s (Set Speed: {kalman_user_speed:.2f} m/s)")
+        logger.info(f"{drone_id}: Speed {drone.airspeed:.2f} m/s (Set Speed: {kalman_user_speed:.2f} m/s)")
 
 
 def move_to_initial_positions(drones, triangle_positions, kalman_user_speed):
@@ -25,8 +28,8 @@ def move_to_initial_positions(drones, triangle_positions, kalman_user_speed):
         # Move the drone to the target position while preserving its current altitude
         drone.simple_goto(LocationGlobalRelative(target_position[0], target_position[1], current_altitude), kalman_user_speed)
 
-        print(f"{drone_id}: Moving to {target_position} at altitude {current_altitude:.2f} m "
-              f"with speed {kalman_user_speed:.2f} m/s.")
+        logger.info(f"{drone_id}: Moving to {target_position} at altitude {current_altitude:.2f} m "
+                    f"with speed {kalman_user_speed:.2f} m/s.")
 
 
 """
@@ -45,7 +48,7 @@ def move_to_positions(drones, triangle_positions, altitude):
         drone.send_mavlink(target_msg)
         drone.flush()  # Ensure the message is sent immediately
 
-        print(f"{drone_id}: Sending target position to {target_position}")
+        logger.info(f"{drone_id}: Sending target position to {target_position}")
 
         time.sleep(0.1)  # Short delay for high-frequency position updates
 
@@ -121,7 +124,7 @@ def move_to_user_position(drones, user_lat, user_lon, user_alt, target_altitude,
         drone.send_mavlink(target_msg)
         drone.flush()
 
-        print(f"{drone_id}: Moving to target position (N:{north}, E:{east}, D:{down})")
+        logger.info(f"{drone_id}: Moving to target position (N:{north}, E:{east}, D:{down})")
 
         time.sleep(0.1)  # Short delay to ensure high-frequency updates
 
@@ -198,7 +201,7 @@ def move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, ta
         # Check altitude deviation
         altitude_deviation = abs(current_alt - target_altitude)
         if altitude_deviation > altitude_tolerance:
-            print(f"{drone_id}: Altitude deviation detected ({altitude_deviation:.2f} m). Correcting altitude using simple_goto.")
+            logger.warning(f"{drone_id}: Altitude deviation detected ({altitude_deviation:.2f} m). Correcting altitude using simple_goto.")
             # Use simple_goto to correct altitude while maintaining position
             drone.simple_goto(LocationGlobalRelative(current_lat, current_lon, target_altitude))
             continue  # Skip velocity command for this iteration
@@ -206,8 +209,8 @@ def move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, ta
         # Construct and send MAVLink velocity command for NED movement
         send_ned_velocity(drone, filtered_north_velocity, filtered_east_velocity, 0)  # No vertical velocity
 
-        print(f"{drone_id}: Moving towards target with velocities N: {filtered_north_velocity:.2f} m/s, "
-              f"E: {filtered_east_velocity:.2f} m/s, maintaining altitude at {target_altitude:.2f} m")
+        logger.info(f"{drone_id}: Moving towards target with velocities N: {filtered_north_velocity:.2f} m/s, "
+                    f"E: {filtered_east_velocity:.2f} m/s, maintaining altitude at {target_altitude:.2f} m")
 
         # Optional: Short delay for smoother control loop
         time.sleep(0.1)
@@ -309,8 +312,8 @@ def move_to_positions_with_ned(drones, triangle_positions, kalman_user_speed, ta
             filtered_north_velocity, filtered_east_velocity
         )
 
-        print(f"{drone_id}: Moving to target with position (N:{north:.2f}, E:{east:.2f}, D:{down:.2f}) "
-              f"and velocities (N:{filtered_north_velocity:.2f}, E:{filtered_east_velocity:.2f})")
+        logger.info(f"{drone_id}: Moving to target with position (N:{north:.2f}, E:{east:.2f}, D:{down:.2f}) "
+                    f"and velocities (N:{filtered_north_velocity:.2f}, E:{filtered_east_velocity:.2f})")
 
         # Optional: Short delay for smoother control loop
         time.sleep(0.1)
