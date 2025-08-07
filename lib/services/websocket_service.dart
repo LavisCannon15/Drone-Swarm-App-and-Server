@@ -13,6 +13,12 @@ class WebSocketService {
   late WebSocketChannel _webSocket;
   bool isConnected = false;
 
+  String? _lastUrl;
+  int _retryCount = 0;
+  final int _maxRetries = 5;
+  bool _isReconnecting = false;
+  void Function(int attempt, Duration delay)? onReconnectionAttempt;
+
   // ─── Telemetry stream ────────────────────────────────────────────────────────
   final StreamController<void> _telemetryStreamController =
       StreamController.broadcast();
@@ -43,6 +49,15 @@ class WebSocketService {
 
   // Connect to WebSocket server
   Future<void> connect(String url) async {
+    _lastUrl = url;
+    _retryCount = 0;
+    final connected = await _attemptConnection(url);
+    if (!connected) {
+      await _retryConnection();
+    }
+  }
+
+  Future<bool> _attemptConnection(String url) async {
     try {
        _webSocket = WebSocketChannel.connect(Uri.parse(url));
       isConnected = true;
@@ -62,22 +77,64 @@ class WebSocketService {
             print("🔌 WebSocket connection closed.");
           }
           LogManager().addLog("🔌 WebSocket connection closed.");
-          isConnected = false;
+          _handleDisconnect();
         },
         onError: (error) {
           if (kDebugMode) {
             print("❌ WebSocket error: $error");
           }
           LogManager().addLog("❌ WebSocket error: $error.");
-          isConnected = false;
+          _handleDisconnect();
         },
       );
+      return true;
     } catch (e) {
       if (kDebugMode) {
         print("⚠️ Failed to connect to WebSocket: $e");
       }
       LogManager().addLog("⚠️ Failed to connect to WebSocket: $e");
+      isConnected = false;
+      return false;
     }
+  }
+
+  void _handleDisconnect() {
+    isConnected = false;
+    _retryConnection();
+  }
+
+  Future<void> _retryConnection() async {
+    if (_isReconnecting || _lastUrl == null) return;
+    _isReconnecting = true;
+
+    while (_retryCount < _maxRetries && !isConnected) {
+      final delay = Duration(seconds: 1 << _retryCount);
+      onReconnectionAttempt?.call(_retryCount + 1, delay);
+      final message =
+          "🔄 Attempting to reconnect (#${_retryCount + 1}) in ${delay.inSeconds}s";
+      if (kDebugMode) {
+        print(message);
+      }
+      LogManager().addLog(message);
+      await Future.delayed(delay);
+      final success = await _attemptConnection(_lastUrl!);
+      if (success) {
+        _retryCount = 0;
+        break;
+      }
+      _retryCount++;
+    }
+
+    if (!isConnected) {
+      final message =
+          "❌ Failed to reconnect after $_maxRetries attempts.";
+      if (kDebugMode) {
+        print(message);
+      }
+      LogManager().addLog(message);
+    }
+
+    _isReconnecting = false;
   }
 
   double lastLatitude = 0.0;
@@ -285,6 +342,8 @@ class WebSocketService {
 
   // Disconnect WebSocket
   Future<void> disconnect() async {
+    _lastUrl = null;
+    _isReconnecting = false;
     if (isConnected) {
       await _webSocket.sink.close();
       isConnected = false;

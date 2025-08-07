@@ -18,6 +18,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   Map<String, dynamic> droneTelemetry = {};
   List<Map<String, dynamic>> droneData = [];
   StreamSubscription? _telemetrySubscription;
+  Timer? _debounceTimer;
 
   static const double _minSize = 0.03;
   static const double _maxSize = 0.8;
@@ -25,10 +26,19 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _telemetrySubscription =
-        webSocketService.telemetryStream.listen((_) {
+    _telemetrySubscription = webSocketService.telemetryStream.listen((_) {
       if (!mounted) return;
-      refreshDroneTelemetry();
+      // Skip updates when the sheet is collapsed or not attached.
+      if (!_sheetController.isAttached || _sheetController.size <= _minSize) {
+        return;
+      }
+
+      // Debounce telemetry updates to avoid excessive rebuilds.
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+        refreshDroneTelemetry();
+      });
     });
 
     if (kDebugMode) {
@@ -75,6 +85,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   @override
   void dispose() {
     _telemetrySubscription?.cancel();
+    _debounceTimer?.cancel();
     _sheetController.dispose();
     super.dispose();
   }

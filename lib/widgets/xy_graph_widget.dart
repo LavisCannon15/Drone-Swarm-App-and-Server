@@ -89,7 +89,6 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   Widget build(BuildContext context) {
     if (kDebugMode) {
       final now = DateTime.now();
-      print("🔄 XYGraphWidget rebuilding at ${now.toIso8601String()}");
       if (_lastLogTime == null ||
           now.difference(_lastLogTime!) > const Duration(seconds: 1)) {
         LogManager()

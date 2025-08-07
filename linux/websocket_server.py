@@ -1,6 +1,5 @@
 import asyncio
 import websockets
-import socket
 import json
 import threading
 from dronekit import connect
@@ -18,6 +17,10 @@ async def send_telemetry():
     Periodically sends telemetry data for each connected drone to the client.
     """
     while True:
+        # If no clients are connected, pause before checking again to avoid busy looping.
+        if not server_log_clients:
+            await asyncio.sleep(5)
+            continue
         telemetry_data = []
         for drone_id, vehicle in vehicles.items():
             try:
