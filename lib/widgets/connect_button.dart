@@ -6,6 +6,8 @@ import '../services/websocket_service.dart';
 import '../services/log_manager.dart';
 
 class ConnectButton extends StatefulWidget {
+  const ConnectButton({super.key});
+
   @override
   _ConnectButtonState createState() => _ConnectButtonState();
 }

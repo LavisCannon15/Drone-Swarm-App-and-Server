@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/gps_service.dart';
+import '../services/log_manager.dart';
 import '../services/simulated_gps_service.dart';
 import '../services/websocket_service.dart';
 
 class XYGraphWidget extends StatefulWidget {
+  const XYGraphWidget({super.key});
+
   @override
   _XYGraphWidgetState createState() => _XYGraphWidgetState();
 }
@@ -84,6 +87,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
     if (kDebugMode) {
       print("🔄 XYGraphWidget rebuilding at ${DateTime.now().toIso8601String()}");
     }
+    LogManager()
+    .addLog("🔄 XYGraphWidget rebuilt at ${DateTime.now().toIso8601String()}");
 
     double centerLongitude = userLocation.longitude;
     double centerLatitude = userLocation.latitude;

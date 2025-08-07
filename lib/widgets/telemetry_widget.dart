@@ -5,6 +5,8 @@ import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
 class TelemetryWidget extends StatefulWidget {
+  const TelemetryWidget({super.key});
+  
   @override
   _TelemetryWidgetState createState() => _TelemetryWidgetState();
 }

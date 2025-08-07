@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/log_manager.dart';
 
 class DroneManagementScreen extends StatefulWidget {
+  const DroneManagementScreen({super.key});
+  
   @override
   _DroneManagementScreenState createState() {
     LogManager().addLog("DroneManagementScreen created.");

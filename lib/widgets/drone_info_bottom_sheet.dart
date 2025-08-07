@@ -6,6 +6,8 @@ import 'package:latlong2/latlong.dart' as latlong2;
 import '../services/log_manager.dart';
 
 class DroneInfoBottomSheet extends StatefulWidget {
+  const DroneInfoBottomSheet({super.key});
+
   @override
   _DroneInfoBottomSheetState createState() => _DroneInfoBottomSheetState();
 }

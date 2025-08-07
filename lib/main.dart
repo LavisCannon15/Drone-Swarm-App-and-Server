@@ -43,7 +43,7 @@ void main() {
       debugPrint("$errorMessage\nStack Trace:\n$stackTrace"); // ✅ Prints full stack trace in terminal
     }
 
-    runApp(MyApp());
+    runApp(const MyApp());
   }, (error, stackTrace) {
     String errorMessage = "❌ UNHANDLED ERROR: $error";
     LogManager().addLog(errorMessage); // ✅ Logs error without stack trace
@@ -54,12 +54,14 @@ void main() {
 
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Drone Swarm UI',
-      home: SharedHome(),
+      home: const SharedHome(),
     );
   }
 }

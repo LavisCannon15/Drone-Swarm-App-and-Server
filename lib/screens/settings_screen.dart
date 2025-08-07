@@ -9,6 +9,8 @@ import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+  
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }

@@ -3,6 +3,8 @@ import '../services/websocket_service.dart';
 import '../services/log_manager.dart';
 
 class TakeOffLandButton extends StatefulWidget {
+  const TakeOffLandButton({super.key});
+  
   @override
   _TakeOffLandButtonState createState() => _TakeOffLandButtonState();
 }

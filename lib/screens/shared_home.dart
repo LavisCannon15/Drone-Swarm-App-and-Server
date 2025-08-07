@@ -22,6 +22,8 @@ import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
 class SharedHome extends StatefulWidget {
+  const SharedHome({super.key});
+
   @override
   _SharedHomeState createState() => _SharedHomeState();
 }
@@ -103,7 +105,8 @@ class _SharedHomeState extends State<SharedHome> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const SettingsScreen()),
                 );
               },
             ),
@@ -115,7 +118,7 @@ class _SharedHomeState extends State<SharedHome> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => DroneManagementScreen()),
+                      builder: (context) => const DroneManagementScreen()),
                 );
               },
             ),
@@ -126,7 +129,8 @@ class _SharedHomeState extends State<SharedHome> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ConsoleScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const ConsoleScreen()),
                 );
               },
             ),
@@ -139,8 +143,8 @@ class _SharedHomeState extends State<SharedHome> {
               ? (Platform.isAndroid
                   ? MapWidget(key: mobileMapKey)
                   : DesktopMapWidget(key: desktopMapKey))
-              : XYGraphWidget(),
-          DroneInfoBottomSheet(),
+              : const XYGraphWidget(),
+          const DroneInfoBottomSheet(),
           Positioned(
             top: 50,
             left: 20,
@@ -177,7 +181,7 @@ class _SharedHomeState extends State<SharedHome> {
           Positioned(
             top: 50,
             right: 10,
-            child: TelemetryWidget(),
+            child: const TelemetryWidget(),
           ),
           Positioned(
             bottom: 180,
@@ -203,9 +207,9 @@ class _SharedHomeState extends State<SharedHome> {
                   LogManager().addLog('Mode Selected: $mode');
                 }),
                 SizedBox(height: 20),
-                TakeOffLandButton(),
+                const TakeOffLandButton(),
                 SizedBox(height: 20),
-                ConnectButton(),
+                const ConnectButton(),
               ],
             ),
           ),

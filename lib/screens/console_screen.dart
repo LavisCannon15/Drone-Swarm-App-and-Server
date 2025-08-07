@@ -4,6 +4,8 @@ import '../services/log_manager.dart';
 import '../services/websocket_service.dart';
 
 class ConsoleScreen extends StatefulWidget {
+const ConsoleScreen({super.key});
+
   @override
   _ConsoleScreenState createState() => _ConsoleScreenState();
 }
