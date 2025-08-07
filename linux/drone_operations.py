@@ -1,4 +1,8 @@
 #drone_operations.py
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 from dronekit import VehicleMode
 import time
 import threading
@@ -16,56 +20,56 @@ from position_calculations import (
 
 
 def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
-    print(f"{drone_id}: Changing to GUIDED mode...")
+    logging.info(f"{drone_id}: Changing to GUIDED mode...")
     vehicle.mode = VehicleMode("GUIDED")
     
     # Wait until the vehicle is in GUIDED mode
     while not vehicle.mode.name == "GUIDED":
         if stop_operations_event.is_set():
-            print(f"{drone_id}: Stop signal received. Aborting mode change.")
+            logging.info(f"{drone_id}: Stop signal received. Aborting mode change.")
             return
-        print(f"{drone_id}: Waiting for GUIDED mode...")
+        logging.info(f"{drone_id}: Waiting for GUIDED mode...")
         time.sleep(1)
 
-    print(f"{drone_id}: Waiting for vehicle to be ready to arm...")
+    logging.info(f"{drone_id}: Waiting for vehicle to be ready to arm...")
     while not vehicle.is_armable:
         if stop_operations_event.is_set():
-            print(f"{drone_id}: Stop signal received. Aborting arming process.")
+            logging.info(f"{drone_id}: Stop signal received. Aborting arming process.")
             return
-        print(f"{drone_id}: Vehicle not armable yet. Waiting...")
+        logging.info(f"{drone_id}: Vehicle not armable yet. Waiting...")
         time.sleep(1)
 
-    print(f"{drone_id}: Arming...")
+    logging.info(f"{drone_id}: Arming...")
     vehicle.armed = True
 
     while not vehicle.armed:
         if stop_operations_event.is_set():
-            print(f"{drone_id}: Stop signal received. Aborting arming.")
+            logging.info(f"{drone_id}: Stop signal received. Aborting arming.")
             return
-        print(f"{drone_id}: Waiting for arming...")
+        logging.info(f"{drone_id}: Waiting for arming...")
         time.sleep(1)
 
-    print(f"{drone_id}: Taking off to {target_altitude} meters...")
+    logging.info(f"{drone_id}: Taking off to {target_altitude} meters...")
     vehicle.simple_takeoff(target_altitude)
 
     while True:
         if stop_operations_event.is_set():
-            print(f"{drone_id}: Stop signal received. Aborting takeoff.")
+            logging.info(f"{drone_id}: Stop signal received. Aborting takeoff.")
             return
-        
+
         altitude = vehicle.location.global_relative_frame.alt
-        print(f"{drone_id}: Altitude: {altitude:.2f} meters")
-        
+        logging.info(f"{drone_id}: Altitude: {altitude:.2f} meters")
+
         # Exit the loop when the target altitude is reached
         if altitude >= target_altitude * 0.95:
-            print(f"{drone_id}: Reached target altitude.")
+            logging.info(f"{drone_id}: Reached target altitude.")
             break
         
         time.sleep(1)
 
 
 def land(vehicle, drone_id):
-    print(f"{drone_id}: Landing...")
+    logging.info(f"{drone_id}: Landing...")
     vehicle.mode = VehicleMode("LAND")
 
 
@@ -85,7 +89,7 @@ def wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operatio
         # Wait until the drone reaches its target position
         while True:
             if stop_operations_event.is_set():
-                print(f"{drone_id}: Stop signal received. Aborting movement.")
+                logging.info(f"{drone_id}: Stop signal received. Aborting movement.")
                 break
             current_position = (drone.location.global_relative_frame.lat, drone.location.global_relative_frame.lon)
             distance_to_target = great_circle(current_position, target_position).meters
@@ -93,7 +97,7 @@ def wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operatio
 
             # Check if the drone has reached its target position with a tolerance (e.g., 1 meter)
             if distance_to_target < 1:
-                print(f"{drone_id}: Reached target position.")
+                logging.info(f"{drone_id}: Reached target position.")
                 break
 
             #time.sleep(0.5)  # Adjust the sleep time as needed
@@ -120,7 +124,7 @@ def determine_user_coordinates(current_lat, current_lon, user_speed, last_known_
         if not is_stationary:
             # Cache the current position
             last_known_lat, last_known_lon = current_lat, current_lon
-            print("User is stationary. Caching last known GPS position.")
+            logging.info("User is stationary. Caching last known GPS position.")
             is_stationary = True
     else:
         is_stationary = False  # User is moving
@@ -159,7 +163,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
     # Allow a moment for all drones to stabilize after the takeoff command
 
-    print("Moving to positions")
+    logging.info("Moving to positions")
     kalman_user_speed = 10
 
     # Read initial user location from WebSocket data stream
@@ -231,7 +235,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                     
                     move_to_positions(drones, triangle_positions, speed, target_altitude)
 
-                    print(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    logging.info(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
 
             
 
@@ -254,7 +258,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                     move_to_positions(drones, triangle_positions, speed, target_altitude)
 
-                    print(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    logging.info(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
 
                 elif swap_positions:
                     orbit_around_user = False
@@ -280,7 +284,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
                 move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
 
-                print("User is moving")
+                logging.info("User is moving")
 
             # Monitor drones for issues (battery, GPS, etc.)
             if monitor_drones(drones, low_battery_threshold=20, stop_operations_event=stop_operations_event):
@@ -296,6 +300,6 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             try:
                 land(drone, drone_id)
             except Exception as e:
-                print(f"Error during landing of {drone_id}: {e}")
+                logging.error(f"Error during landing of {drone_id}: {e}")
 
-        print("Drones have landed safely.")
+        logging.info("Drones have landed safely.")
