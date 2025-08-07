@@ -5,7 +5,6 @@ import threading
 import logging
 from global_vars import stop_operations_event
 from geopy.distance import great_circle  # Ensure you have geopy installed
-import numpy as np
 from error_handler import monitor_drones, handle_drone_exceptions
 #from simulated_sensors import  simulate_user_movement
 from drone_movements import move_to_positions, move_to_initial_positions, move_to_positions_velocity, move_to_positions_with_ned
