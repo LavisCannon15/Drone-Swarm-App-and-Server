@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../widgets/desktop_map_widget.dart';
 import '../widgets/map_widget.dart';
@@ -32,7 +32,9 @@ class RecenterButton extends StatelessWidget {
           size: 24,
         ),
         onPressed: () {
-          if (Platform.isAndroid || Platform.isIOS) {
+          if (!kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.android ||
+                  defaultTargetPlatform == TargetPlatform.iOS)) {
             if (mobileMapKey != null && mobileMapKey!.currentState != null) {
               mobileMapKey!.currentState!.recenterOnUser();
             }

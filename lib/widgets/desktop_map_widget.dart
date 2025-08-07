@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
@@ -29,7 +29,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   Map<String, LatLng> droneLocations = {};
 
   StreamSubscription<Map<String, dynamic>>? _locationSubscription;
-  StreamSubscription<dynamic>? _telemetrySubscription;
+  StreamSubscription<void>? _telemetrySubscription;
 
   @override
   void initState() {
@@ -55,7 +55,9 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
   }
 
   void _startLocationUpdates() {
-    final stream = (Platform.isAndroid || Platform.isIOS)
+    final stream = (!kIsWeb &&
+            (defaultTargetPlatform == TargetPlatform.android ||
+                defaultTargetPlatform == TargetPlatform.iOS))
         ? gpsService.locationStream
         : SimulatedGPSService().locationStream;
 

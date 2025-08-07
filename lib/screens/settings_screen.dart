@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'dart:io';
 import '../services/log_manager.dart';
 
 import '../services/gps_service.dart';
@@ -276,7 +275,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             // ✅ Show "Clear Cache" button only on DESKTOP platforms (Linux, Windows, Mac)
-            if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) ...[
+            if (!kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.linux ||
+                    defaultTargetPlatform == TargetPlatform.windows ||
+                    defaultTargetPlatform == TargetPlatform.macOS)) ...[
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _clearCache,

@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
 
 class TelemetryWidget extends StatefulWidget {
   const TelemetryWidget({super.key});
-  
+
   @override
   _TelemetryWidgetState createState() => _TelemetryWidgetState();
 }
@@ -28,7 +28,9 @@ class _TelemetryWidgetState extends State<TelemetryWidget> {
   }
 
   void startLocationUpdates() {
-    if (Platform.isAndroid || Platform.isIOS) {
+     if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
       _subscription = gpsService.locationStream.listen((locationData) {
         if (!mounted) return;
         setState(() {

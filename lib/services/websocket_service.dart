@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import '../services/log_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
   factory WebSocketService() => _instance;
   WebSocketService._internal();
 
-  late WebSocket _webSocket;
+  late WebSocketChannel _webSocket;
   bool isConnected = false;
 
   // ─── Telemetry stream ────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ class WebSocketService {
   // Connect to WebSocket server
   Future<void> connect(String url) async {
     try {
-      _webSocket = await WebSocket.connect(url);
+       _webSocket = WebSocketChannel.connect(Uri.parse(url));
       isConnected = true;
 
       if (kDebugMode) {
@@ -53,9 +53,9 @@ class WebSocketService {
       LogManager().addLog("✅ Connected to WebSocket: $url");
 
       // Subscribe to logs
-      _webSocket.add(jsonEncode({"command": "subscribe_logs"}));
+      _webSocket.sink.add(jsonEncode({"command": "subscribe_logs"}));
 
-      _webSocket.listen(
+      _webSocket.stream.listen(
         (data) => _handleIncomingMessage(data), // Process incoming messages
         onDone: () {
           if (kDebugMode) {
@@ -112,7 +112,7 @@ class WebSocketService {
       },
     };
 
-    _webSocket.add(jsonEncode(message));
+    _webSocket.sink.add(jsonEncode(message));
 
     if ((latitude - lastLatitude).abs() > 0.00005 ||
         (longitude - lastLongitude).abs() > 0.00005) {
@@ -211,7 +211,7 @@ class WebSocketService {
       "command": command,
       "params": params,
     };
-    _webSocket.add(jsonEncode(message));
+    _webSocket.sink.add(jsonEncode(message));
 
     if (kDebugMode) {
       print("🚀 Sent command: $message");
@@ -234,7 +234,7 @@ class WebSocketService {
         "command": "connect",
         "params": {"drones": droneConnections},
       };
-      _webSocket.add(jsonEncode(message));
+      _webSocket.sink.add(jsonEncode(message));
 
       if (kDebugMode) {
         print("🔗 Drone connection requests sent: $droneConnections");
@@ -286,7 +286,7 @@ class WebSocketService {
   // Disconnect WebSocket
   Future<void> disconnect() async {
     if (isConnected) {
-      await _webSocket.close();
+      await _webSocket.sink.close();
       isConnected = false;
       if (kDebugMode) {
         print("🔌 Disconnected from WebSocket.");

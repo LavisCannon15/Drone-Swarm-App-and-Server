@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
@@ -50,7 +49,7 @@ class _SharedHomeState extends State<SharedHome> {
   }
 
   Future<void> initializeBackgroundExecution() async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       final isEnabled = await FlutterBackground.isBackgroundExecutionEnabled;
       if (!isEnabled) {
         bool success = await FlutterBackground.initialize();
@@ -72,7 +71,7 @@ class _SharedHomeState extends State<SharedHome> {
     LogManager().dispose();
     GPSService().dispose();
     simulatedGPSService.dispose();
-    if (Platform.isAndroid) {
+   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       FlutterBackground.disableBackgroundExecution();
     }
     // Dispose of any additional background services here as they are added.
@@ -140,7 +139,9 @@ class _SharedHomeState extends State<SharedHome> {
       body: Stack(
         children: [
           isMapView
-              ? (Platform.isAndroid
+              ? (!kIsWeb &&
+                      (defaultTargetPlatform == TargetPlatform.android ||
+                          defaultTargetPlatform == TargetPlatform.iOS)
                   ? MapWidget(key: mobileMapKey)
                   : DesktopMapWidget(key: desktopMapKey))
               : const XYGraphWidget(),

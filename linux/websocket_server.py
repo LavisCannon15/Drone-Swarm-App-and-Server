@@ -11,6 +11,7 @@ from global_vars import stop_operations_event
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
+telemetry_task = None 
 
 async def send_telemetry():
     """
@@ -156,7 +157,14 @@ async def handle_connect_command(websocket, params):
     }))
 
     # ✅ Start telemetry updates immediately after connecting
-    asyncio.create_task(send_telemetry())
+    global telemetry_task
+    if telemetry_task and not telemetry_task.done():
+        telemetry_task.cancel()
+        try:
+            await telemetry_task
+        except asyncio.CancelledError:
+            pass
+    telemetry_task = asyncio.create_task(send_telemetry())
 
 
 

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +23,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   Map<String, LatLng> droneLocations = {};
   LatLng userLocation = LatLng(0.0, 0.0);
 
+  DateTime? _lastLogTime;
+
   StreamSubscription? _locationSubscription;
   StreamSubscription? _telemetrySubscription;
 
@@ -37,7 +38,9 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   void startLocationUpdates() {
     _locationSubscription?.cancel();
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
       _locationSubscription = gpsService.locationStream.listen((locationData) {
         if (!mounted) return;
         setState(() {
@@ -85,10 +88,15 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) {
-      print("🔄 XYGraphWidget rebuilding at ${DateTime.now().toIso8601String()}");
+      final now = DateTime.now();
+      print("🔄 XYGraphWidget rebuilding at ${now.toIso8601String()}");
+      if (_lastLogTime == null ||
+          now.difference(_lastLogTime!) > const Duration(seconds: 1)) {
+        LogManager()
+            .addLog("🔄 XYGraphWidget rebuilt at ${now.toIso8601String()}");
+        _lastLogTime = now;
+      }
     }
-    LogManager()
-    .addLog("🔄 XYGraphWidget rebuilt at ${DateTime.now().toIso8601String()}");
 
     double centerLongitude = userLocation.longitude;
     double centerLatitude = userLocation.latitude;
