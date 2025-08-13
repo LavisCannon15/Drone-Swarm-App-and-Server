@@ -11,9 +11,9 @@ class GPSService {
   // ----- Singleton -----------------------------------------------------------
   static final GPSService _instance = GPSService._internal();
   factory GPSService() => _instance;
-  GPSService._internal() {
-    _init();                             // fire‑and‑forget
-  }
+  GPSService._internal();
+
+  Future<void> init() => _init();
 
   // ----- Public stream ------------------------------------------------------
   final _locationStreamController =

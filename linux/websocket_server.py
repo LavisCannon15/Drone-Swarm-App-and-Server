@@ -3,6 +3,7 @@ import websockets
 import json
 import logging
 import threading
+import functools
 from dronekit import connect
 from drone_operations import operate_drones
 from global_vars import stop_operations_event
@@ -142,7 +143,10 @@ async def handle_connect_command(websocket, params):
         try:
             await log_message(f"Connecting {drone_id} to {drone_ip}")
             
-            vehicle = await asyncio.to_thread(connect, drone_ip, wait_ready=True)  # ✅ Connect to the drone
+            loop = asyncio.get_running_loop()
+            vehicle = await loop.run_in_executor(
+                None, functools.partial(connect, drone_ip, wait_ready=True)
+            )  # ✅ Connect to the drone
             vehicle.id = drone_id  # ✅ Assign a drone ID to the vehicle
             vehicles[drone_id] = vehicle  # ✅ Store in vehicles dictionary
 

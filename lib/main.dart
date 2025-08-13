@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'services/log_manager.dart';
+import 'services/gps_service.dart';
+import 'services/simulated_gps_service.dart';
 import 'screens/shared_home.dart';
 
 void main() {
@@ -42,6 +44,9 @@ void main() {
       LogManager().addLog(errorMessage); // ✅ Logs error without stack trace
       debugPrint("$errorMessage\nStack Trace:\n$stackTrace"); // ✅ Prints full stack trace in terminal
     }
+
+    await GPSService().init();
+    await SimulatedGPSService().init();
 
     runApp(const MyApp());
   }, (error, stackTrace) {
