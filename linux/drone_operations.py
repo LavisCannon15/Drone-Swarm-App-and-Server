@@ -99,7 +99,7 @@ def wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operatio
                 logger.info(f"{drone_id}: Reached target position.")
                 break
 
-            #time.sleep(0.5)  # Adjust the sleep time as needed
+            time.sleep(0.5)  # Adjust the sleep time as needed
 
 
 

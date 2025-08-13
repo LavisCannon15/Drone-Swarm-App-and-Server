@@ -253,8 +253,9 @@ async def handle_start_operations(params):
     drone_list = list(vehicles.values())
 
     drone_thread = threading.Thread(
-        target=operate_drones, 
-        args=(drone_list, takeoff_altitude, target_altitude, drone_command_data)
+        target=operate_drones,
+        args=(drone_list, takeoff_altitude, target_altitude, drone_command_data),
+        daemon=True,
     )
     drone_thread.start()
 
@@ -267,7 +268,8 @@ async def handle_stop_operations():
     """
     Handles the 'stop_operations' command to land all drones.
     """
-    global stop_operations_event, telemetry_task
+    global stop_operations_event, telemetry_task, vehicles
+
 
     stop_operations_event.set()
 
@@ -278,6 +280,13 @@ async def handle_stop_operations():
         except asyncio.CancelledError:
             pass
     telemetry_task = None
+
+    for vehicle in list(vehicles.values()):
+        try:
+            vehicle.close()
+        except Exception as e:
+            await log_message(f"Error closing vehicle {getattr(vehicle, 'id', 'unknown')}: {e}")
+    vehicles.clear()
 
     await log_message("🛬 Stop operations signal received! Landing all drones.")
 
