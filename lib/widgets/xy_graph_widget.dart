@@ -8,6 +8,8 @@ import '../services/log_manager.dart';
 import '../services/simulated_gps_service.dart';
 import '../services/websocket_service.dart';
 
+const bool _debugXYGraphRebuilds = false;
+
 class XYGraphWidget extends StatefulWidget {
   const XYGraphWidget({super.key});
 
@@ -23,7 +25,6 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   Map<String, LatLng> droneLocations = {};
   LatLng userLocation = LatLng(0.0, 0.0);
 
-  DateTime? _lastLogTime;
 
   StreamSubscription? _locationSubscription;
   StreamSubscription? _telemetrySubscription;
@@ -87,14 +88,9 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
+    if (kDebugMode && _debugXYGraphRebuilds) {
       final now = DateTime.now();
-      if (_lastLogTime == null ||
-          now.difference(_lastLogTime!) > const Duration(seconds: 1)) {
-        LogManager()
-            .addLog("🔄 XYGraphWidget rebuilt at ${now.toIso8601String()}");
-        _lastLogTime = now;
-      }
+      LogManager().addLog("🔄 XYGraphWidget rebuilt at ${now.toIso8601String()}");
     }
 
     double centerLongitude = userLocation.longitude;
