@@ -61,10 +61,12 @@ class MapWidgetState extends State<MapWidget> {
     }
     if (!mounted) return;
     setState(() {
-      isGPSReady = locationData != null;
       if (locationData != null) {
+        isGPSReady = true;
         latitude = locationData['latitude'];
         longitude = locationData['longitude'];
+      } else {
+        isGPSReady = false;
       }
     });
   }
