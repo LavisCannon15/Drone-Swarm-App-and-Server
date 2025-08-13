@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import json
 import logging
+import threading
 from dronekit import connect
 from drone_operations import operate_drones
 from global_vars import stop_operations_event
