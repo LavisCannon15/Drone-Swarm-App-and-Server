@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/websocket_service.dart';
-import 'package:latlong2/latlong.dart' as latlong2;
 import '../services/log_manager.dart';
 
 class DroneInfoBottomSheet extends StatefulWidget {
@@ -15,8 +14,6 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   final WebSocketService webSocketService = WebSocketService();
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
-  Map<String, dynamic> droneTelemetry = {};
-  List<Map<String, dynamic>> droneData = [];
   StreamSubscription<void>? _telemetrySubscription;
   Timer? _debounceTimer;
 
@@ -45,38 +42,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   }
 
   void refreshDroneTelemetry() {
-    setState(() {
-      // map raw telemetry into LatLng
-      droneTelemetry = webSocketService.telemetryData.map(
-        (id, data) => MapEntry(
-          id,
-          latlong2.LatLng(
-            (data["latitude"] as num?)?.toDouble() ?? 0.0,
-            (data["longitude"] as num?)?.toDouble() ?? 0.0,
-          ),
-        ),
-      );
-
-      // build list of readable maps
-      droneData = webSocketService.telemetryData.values.map((data) {
-        return {
-          "id": data["drone_id"],
-          "latitude": data["latitude"],
-          "longitude": data["longitude"],
-          "altitude": "${data["altitude"]} m",
-          "velocity": data["velocity"],
-          "battery": data["battery"],
-          "gps": data["gps"],
-          "groundspeed": "${data["groundspeed"]} m/s",
-          "airspeed": "${data["airspeed"]} m/s",
-          "armed": data["armed"].toString(),
-          "vehicle_mode": data["vehicle_mode"],
-          "system_status": data["system_status"],
-          "heartbeat": "${data["heartbeat"]}",
-          "message_factory": data["message_factory"].toString(),
-        };
-      }).toList();
-    });
+    setState(() {});
   }
 
   @override
@@ -129,9 +95,10 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
-                  itemCount: droneData.length,
+                  itemCount: webSocketService.telemetryData.length,
                   itemBuilder: (context, index) {
-                    final drone = droneData[index];
+                    final drone =
+                        webSocketService.telemetryData.values.elementAt(index);
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                         vertical: 8.0,
@@ -148,7 +115,8 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                drone["id"] ?? "Unknown Drone",
+                                drone["drone_id"]?.toString() ??
+                                    "Unknown Drone",
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -166,7 +134,9 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
                               ),
                               _buildDataRow(
                                 "Altitude",
-                                drone["altitude"]?.toString() ?? "N/A",
+                                drone["altitude"] != null
+                                    ? "${drone["altitude"]} m"
+                                    : "N/A",
                               ),
                               SizedBox(height: 10),
                               _buildSectionHeading("⚡ Velocity"),
@@ -203,11 +173,15 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
                               _buildSectionHeading("🚀 Speed"),
                               _buildDataRow(
                                 "Groundspeed",
-                                drone["groundspeed"] ?? "N/A",
+                                drone["groundspeed"] != null
+                                    ? "${drone["groundspeed"]} m/s"
+                                    : "N/A",
                               ),
                               _buildDataRow(
                                 "Airspeed",
-                                drone["airspeed"] ?? "N/A",
+                                drone["airspeed"] != null
+                                    ? "${drone["airspeed"]} m/s"
+                                    : "N/A",
                               ),
                               SizedBox(height: 10),
                               _buildSectionHeading("📡 GPS"),
@@ -229,22 +203,26 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
                               ),
                               SizedBox(height: 10),
                               _buildSectionHeading("⚙️ System Status"),
-                              _buildDataRow("Armed", drone["armed"] ?? "N/A"),
+                              _buildDataRow(
+                                "Armed",
+                                drone["armed"]?.toString() ?? "N/A",
+                              ),
                               _buildDataRow(
                                 "Vehicle Mode",
-                                drone["vehicle_mode"] ?? "N/A",
+                                drone["vehicle_mode"]?.toString() ?? "N/A",
                               ),
                               _buildDataRow(
                                 "System Status",
-                                drone["system_status"] ?? "N/A",
+                                drone["system_status"]?.toString() ?? "N/A",
                               ),
                               _buildDataRow(
                                 "Heartbeat",
-                                drone["heartbeat"] ?? "N/A",
+                                drone["heartbeat"]?.toString() ?? "N/A",
                               ),
                               _buildDataRow(
                                 "Message Factory",
-                                drone["message_factory"] ?? "N/A",
+                                drone["message_factory"]?.toString() ??
+                                    "N/A",
                               ),
                             ],
                           ),
