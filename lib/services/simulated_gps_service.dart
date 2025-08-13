@@ -9,7 +9,13 @@ class SimulatedGPSService {
   factory SimulatedGPSService() => _instance;
   SimulatedGPSService._internal();
 
-  Future<void> init() => _init();
+  bool _initialized = false;
+
+  Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+    await _init();
+  }
 
   double latitude = -35.3631723;
   double longitude = 149.1652375;
@@ -104,5 +110,6 @@ class SimulatedGPSService {
   void dispose() {
     _timer?.cancel();
     _locationStreamController.close();
+    _initialized = false;
   }
 }

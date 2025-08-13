@@ -1,7 +1,6 @@
 import asyncio
 import websockets
 import json
-import threading
 import logging
 from dronekit import connect
 from drone_operations import operate_drones
@@ -142,7 +141,7 @@ async def handle_connect_command(websocket, params):
         try:
             await log_message(f"Connecting {drone_id} to {drone_ip}")
             
-            vehicle = connect(drone_ip, wait_ready=True)  # ✅ Connect to the drone
+            vehicle = await asyncio.to_thread(connect, drone_ip, wait_ready=True)  # ✅ Connect to the drone
             vehicle.id = drone_id  # ✅ Assign a drone ID to the vehicle
             vehicles[drone_id] = vehicle  # ✅ Store in vehicles dictionary
 
@@ -263,8 +262,18 @@ async def handle_stop_operations():
     """
     Handles the 'stop_operations' command to land all drones.
     """
-    global stop_operations_event
+    global stop_operations_event, telemetry_task
+
     stop_operations_event.set()
+
+    if telemetry_task and not telemetry_task.done():
+        telemetry_task.cancel()
+        try:
+            await telemetry_task
+        except asyncio.CancelledError:
+            pass
+    telemetry_task = None
+
     await log_message("🛬 Stop operations signal received! Landing all drones.")
 
 
