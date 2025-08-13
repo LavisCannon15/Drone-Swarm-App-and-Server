@@ -7,9 +7,9 @@ class SimulatedGPSService {
   // ----- Singleton -----------------------------------------------------------
   static final SimulatedGPSService _instance = SimulatedGPSService._internal();
   factory SimulatedGPSService() => _instance;
-  SimulatedGPSService._internal() {
-    _init();
-  }
+  SimulatedGPSService._internal();
+
+  Future<void> init() => _init();
 
   double latitude = -35.3631723;
   double longitude = 149.1652375;

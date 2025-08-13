@@ -17,7 +17,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   Map<String, dynamic> droneTelemetry = {};
   List<Map<String, dynamic>> droneData = [];
-  StreamSubscription? _telemetrySubscription;
+  StreamSubscription<void>? _telemetrySubscription;
   Timer? _debounceTimer;
 
   static const double _minSize = 0.03;

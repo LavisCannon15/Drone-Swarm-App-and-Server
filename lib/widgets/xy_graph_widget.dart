@@ -26,8 +26,8 @@ class _XYGraphWidgetState extends State<XYGraphWidget> {
   LatLng userLocation = LatLng(0.0, 0.0);
 
 
-  StreamSubscription? _locationSubscription;
-  StreamSubscription? _telemetrySubscription;
+  StreamSubscription<Map<String, dynamic>>? _locationSubscription;
+  StreamSubscription<void>? _telemetrySubscription;
 
   @override
   void initState() {

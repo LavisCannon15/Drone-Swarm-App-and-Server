@@ -23,7 +23,7 @@ class MapWidgetState extends State<MapWidget> {
   double? longitude;
   bool isGPSReady = false;
   Set<Marker> _markers = {};
-  StreamSubscription? _telemetrySub;
+  StreamSubscription<void>? _telemetrySub;
   BitmapDescriptor? _droneIcon;
   final Map<String, LatLng> _previousPositions = {};
   Timer? _debounceTimer;

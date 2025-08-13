@@ -84,7 +84,7 @@ class GPSService {
     _gpsSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 0,
+        distanceFilter: 2,
       ),
     ).listen(
       _handlePosition,
