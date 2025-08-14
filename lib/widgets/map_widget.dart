@@ -87,22 +87,22 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   void recenterOnUser() async {
-    Map<String, dynamic>? locationData;
-    try {
-      locationData = await gpsService.locationStream.first
-          .timeout(const Duration(seconds: 5));
-    } catch (_) {
-      locationData = null;
+    final lat = gpsService.currentLatitude;
+    final lon = gpsService.currentLongitude;
+    if (lat != null && lon != null) {
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(lat, lon), 18.0),
+      );
+      return;
     }
+    final locationData = await gpsService.locationStream.first
+        .timeout(const Duration(seconds: 5), onTimeout: () => null);
     if (!mounted) return;
-    if (_mapController != null &&
-        locationData?['latitude'] != null &&
-        locationData?['longitude'] != null) {
+    final newLat = (locationData?['latitude'] as num?)?.toDouble();
+    final newLon = (locationData?['longitude'] as num?)?.toDouble();
+    if (_mapController != null && newLat != null && newLon != null) {
       _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(locationData!['latitude'], locationData['longitude']),
-          18.0,
-        ),
+        CameraUpdate.newLatLngZoom(LatLng(newLat, newLon), 18.0),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
