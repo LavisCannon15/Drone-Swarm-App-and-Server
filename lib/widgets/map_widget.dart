@@ -40,7 +40,7 @@ class MapWidgetState extends State<MapWidget> {
 
   Future<void> _loadDroneIcon() async {
     final icon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(48, 48)),
+      const ImageConfiguration(size: Size(32, 32)),
       'assets/icons/drone_marker.png',
     );
     if (!mounted) return;

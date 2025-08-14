@@ -5,7 +5,7 @@ import logging
 import threading
 import functools
 from dronekit import connect
-from drone_operations import operate_drones
+from drone_operations import operate_drones, land
 from global_vars import stop_operations_event
 
 logging.basicConfig(
@@ -279,6 +279,12 @@ async def handle_stop_operations():
     if drone_thread and drone_thread.is_alive():
         drone_thread.join()
         drone_thread = None
+
+    for drone_id, vehicle in list(vehicles.items()):
+        try:
+            await asyncio.to_thread(land, vehicle, drone_id)
+        except Exception as e:
+            await log_message(f"Error landing vehicle {drone_id}: {e}")
 
 
 

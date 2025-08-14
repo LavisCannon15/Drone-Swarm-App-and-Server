@@ -7,7 +7,13 @@ from global_vars import stop_operations_event
 from geopy.distance import great_circle  # Ensure you have geopy installed
 from error_handler import monitor_drones, handle_drone_exceptions
 #from simulated_sensors import  simulate_user_movement
-from drone_movements import move_to_positions, move_to_initial_positions, move_to_positions_velocity, move_to_positions_with_ned
+from drone_movements import (
+    move_to_positions,
+    move_to_initial_positions,
+    move_to_positions_velocity,
+    move_to_positions_with_ned,
+    send_ned_velocity,
+)
 from position_calculations import (
     calculate_triangle_positions, swap_triangle_positions, rotate_triangle_around_center,
     calculate_revolving_positions, calculate_rotation_params, ensure_equal_distance,
@@ -68,7 +74,29 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
 
 
 def land(vehicle, drone_id):
-    logger.info(f"{drone_id}: Landing...")
+    logger.info(f"{drone_id}: Stopping and landing…")
+    mode_mapping = {}
+    try:
+        mode_mapping = vehicle.mode_mapping()
+    except Exception:
+        pass
+
+    if "BRAKE" in mode_mapping:
+        vehicle.mode = VehicleMode("BRAKE")
+    else:
+        logger.info(f"{drone_id}: BRAKE mode not supported, holding position with zero velocity.")
+        try:
+            send_ned_velocity(vehicle, 0, 0, 0)
+        except Exception as e:
+            logger.warning(f"{drone_id}: Failed to send hold position command: {e}")
+
+    while vehicle.velocity and any(abs(v) > 0.1 for v in vehicle.velocity):
+        if "BRAKE" not in mode_mapping:
+            try:
+                send_ned_velocity(vehicle, 0, 0, 0)
+            except Exception:
+                pass
+        time.sleep(0.5)
     vehicle.mode = VehicleMode("LAND")
 
 
