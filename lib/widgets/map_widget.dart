@@ -48,26 +48,33 @@ class MapWidgetState extends State<MapWidget> {
     _scheduleMarkerUpdate();
   }
 
-  void initializeCameraPosition() async {
+  Future<void> initializeCameraPosition() async {
     Map<String, dynamic>? locationData;
     try {
       locationData = await gpsService.locationStream.first
           .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
+    } catch (_) {
       locationData = null;
     }
-    if (locationData == null) {
-      debugPrint('GPS fix not acquired');
-    }
     if (!mounted) return;
+
+    if (locationData == null) {
+      debugPrint('GPS fix not acquired; using fallback location.');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'GPS fix not acquired; using fallback location.')),
+          );
+        }
+      });
+    }
+
     setState(() {
-      if (locationData != null) {
-        isGPSReady = true;
-        latitude = locationData['latitude'];
-        longitude = locationData['longitude'];
-      } else {
-        isGPSReady = false;
-      }
+      latitude = locationData?['latitude'] ?? 37.7749;
+      longitude = locationData?['longitude'] ?? -122.4194;
+      isGPSReady = true; // show map regardless
     });
   }
 
@@ -84,7 +91,7 @@ class MapWidgetState extends State<MapWidget> {
     try {
       locationData = await gpsService.locationStream.first
           .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
+    } catch (_) {
       locationData = null;
     }
     if (!mounted) return;
@@ -96,6 +103,10 @@ class MapWidgetState extends State<MapWidget> {
           LatLng(locationData!['latitude'], locationData['longitude']),
           18.0,
         ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to obtain GPS fix.')),
       );
     }
   }
