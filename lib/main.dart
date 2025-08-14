@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'services/log_manager.dart';
 import 'services/gps_service.dart';
@@ -45,8 +46,13 @@ void main() {
       debugPrint("$errorMessage\nStack Trace:\n$stackTrace"); // ✅ Prints full stack trace in terminal
     }
 
-    await GPSService().init();
-    await SimulatedGPSService().init();
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
+      await GPSService().init();
+    } else {
+      await SimulatedGPSService().init();
+    }
 
     runApp(const MyApp());
   }, (error, stackTrace) {
