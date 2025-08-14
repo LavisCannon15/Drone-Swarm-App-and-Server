@@ -95,8 +95,13 @@ class MapWidgetState extends State<MapWidget> {
       );
       return;
     }
-    final locationData = await gpsService.locationStream.first
-        .timeout(const Duration(seconds: 5), onTimeout: () => null);
+    Map<String, dynamic>? locationData;
+    try {
+      locationData = await gpsService.locationStream.first
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      locationData = null;
+    }
     if (!mounted) return;
     final newLat = (locationData?['latitude'] as num?)?.toDouble();
     final newLon = (locationData?['longitude'] as num?)?.toDouble();
