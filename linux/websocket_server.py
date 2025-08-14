@@ -17,7 +17,8 @@ logging.basicConfig(
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
-telemetry_task = None 
+telemetry_task = None
+drone_thread = None
 
 async def send_telemetry():
     """
@@ -221,7 +222,8 @@ async def handle_start_operations(params):
     """
     Handles the 'start_operations' command to initiate drone operations.
     """
-    global stop_operations_event, drone_command_data
+    global stop_operations_event, drone_command_data, drone_thread
+
 
     if not vehicles:
         await log_message("🚨 No drones connected! Cannot start operations.")
@@ -268,10 +270,17 @@ async def handle_stop_operations():
     """
     Handles the 'stop_operations' command to land all drones.
     """
-    global stop_operations_event, telemetry_task, vehicles
+    global stop_operations_event, telemetry_task, vehicles, drone_thread
+
 
 
     stop_operations_event.set()
+
+    if drone_thread and drone_thread.is_alive():
+        drone_thread.join()
+        drone_thread = None
+
+
 
     if telemetry_task and not telemetry_task.done():
         telemetry_task.cancel()

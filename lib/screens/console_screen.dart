@@ -101,7 +101,6 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
           LogManager().clearLogs();
           WebSocketService().clearServerLogs();
 
-          setState(() {});
           if (kDebugMode) {
             print("🗑️ Console logs cleared.");
           }
