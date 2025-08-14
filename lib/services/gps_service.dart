@@ -39,10 +39,18 @@ class GPSService {
   double _swapPositionSpeed = 1.0;
   String _selectedMode = 'Normal';
 
+  StreamSubscription<ServiceStatus>? _serviceStatusSub;
+
   // ----- Initialisation -----------------------------------------------------
   Future<void> _init() async {
     await _loadPreferences();
-    if (!await _checkLocationServices()) return;
+    _serviceStatusSub =
+        Geolocator.getServiceStatusStream().listen(_handleServiceStatus);
+
+    if (!await _checkLocationServices()) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
     if (!await _checkPermissions()) return;
     _startGPSTracking();
   }
@@ -66,7 +74,9 @@ class GPSService {
   // ----- Permissions / services --------------------------------------------
   Future<bool> _checkLocationServices() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) LogManager().addLog('❌ Location services are disabled.');
+    if (!enabled) {
+      LogManager().addLog('❌ Location services are disabled.');
+    }
     return enabled;
   }
 
@@ -81,6 +91,20 @@ class GPSService {
       return false;
     }
     return true;
+  }
+
+  void _handleServiceStatus(ServiceStatus status) {
+    if (status == ServiceStatus.enabled) {
+      _checkPermissions().then((granted) {
+        if (granted) {
+          _startGPSTracking();
+        }
+      });
+    } else {
+      _gpsSubscription?.cancel();
+      _gpsSubscription = null;
+      LogManager().addLog('❌ Location services are disabled.');
+    }
   }
 
   // ----- GPS tracking -------------------------------------------------------
@@ -145,5 +169,6 @@ class GPSService {
   void dispose() {
     _gpsSubscription?.cancel();
     _locationStreamController.close();
+    _serviceStatusSub?.cancel();
   }
 }
