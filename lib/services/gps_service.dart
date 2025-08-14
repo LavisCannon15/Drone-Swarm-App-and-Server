@@ -27,6 +27,9 @@ class GPSService {
   double? _lng;
   double _speed = 0.0;
 
+  double? get currentLatitude => _lat;
+  double? get currentLongitude => _lng;
+
   // Cached preferences
   double _offsetDistance = 4.0;
   double _revolveSpeed = 3.0;
