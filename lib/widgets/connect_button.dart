@@ -62,12 +62,25 @@ class _ConnectButtonState extends State<ConnectButton> {
     LogManager().addLog("🔗 Attempting to connect...");
 
     final prefs = await SharedPreferences.getInstance();
-    final serverUrl = prefs.getString('serverAddress') ?? '';
+    String serverUrl = prefs.getString('serverAddress') ?? '';
     if (serverUrl.isEmpty) {
       if (!mounted) return;
       setState(() => connectionStatus = "Server not configured");
       return;
     }
+
+
+    if (serverUrl.startsWith('0.0.0.0')) {
+      if (!mounted) return;
+      setState(() => connectionStatus = "Invalid server address");
+      LogManager().addLog("❌ Invalid server address: $serverUrl");
+      return;
+    }
+
+    if (!serverUrl.startsWith('ws://') && !serverUrl.startsWith('wss://')) {
+      serverUrl = 'ws://$serverUrl';
+    }
+
 
     if (!mounted) return;
     setState(() => connectionStatus = "Connecting to $serverUrl");

@@ -24,7 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     "revolveSpeed": "20",
     "revolveOffsetDistance": "4",
     "swapPositionSpeed": "1",
-    "serverAddress": "ws://127.0.0.1:5000",
+    "serverAddress": "127.0.0.1:5000",
   };
 
   // Current values for settings
@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String revolveSpeed = "20";
   String revolveOffsetDistance = "4";
   String swapPositionSpeed = "1";
-  String serverAddress = "ws://127.0.0.1:5000";
+  String serverAddress = "127.0.0.1:5000";
 
   late final TextEditingController takeoffAltitudeController;
   late final TextEditingController targetAltitudeController;
@@ -283,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextField(
               decoration: InputDecoration(
                 labelText: "Server Address",
-                hintText: "Enter WebSocket server URL (e.g., ws://192.168.1.1:5000)",
+                hintText: "Enter server address (e.g., 192.168.1.1:5000)",
               ),
               keyboardType: TextInputType.text,
               onChanged: (value) => serverAddress = value,
