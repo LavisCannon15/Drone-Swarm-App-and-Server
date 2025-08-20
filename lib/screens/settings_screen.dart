@@ -24,6 +24,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     "revolveSpeed": "20",
     "revolveOffsetDistance": "4",
     "swapPositionSpeed": "1",
+    "simSpeed": "1",
+    "simMaxDistance": "20",
     "serverAddress": "127.0.0.1:5000",
   };
 
@@ -34,6 +36,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String revolveSpeed = "20";
   String revolveOffsetDistance = "4";
   String swapPositionSpeed = "1";
+  String simSpeed = "1";
+  String simMaxDistance = "20";
   String serverAddress = "127.0.0.1:5000";
 
   late final TextEditingController takeoffAltitudeController;
@@ -42,6 +46,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController revolveSpeedController;
   late final TextEditingController revolveOffsetDistanceController;
   late final TextEditingController swapPositionSpeedController;
+  late final TextEditingController simSpeedController;
+  late final TextEditingController simMaxDistanceController;
   late final TextEditingController serverAddressController;
 
   @override
@@ -53,6 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     revolveSpeedController = TextEditingController();
     revolveOffsetDistanceController = TextEditingController();
     swapPositionSpeedController = TextEditingController();
+    simSpeedController = TextEditingController();
+    simMaxDistanceController = TextEditingController();
     serverAddressController = TextEditingController();
     _loadSettings(); // Load saved settings
   }
@@ -65,6 +73,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     revolveSpeedController.dispose();
     revolveOffsetDistanceController.dispose();
     swapPositionSpeedController.dispose();
+    simSpeedController.dispose();
+    simMaxDistanceController.dispose();
     serverAddressController.dispose();
     super.dispose();
   }
@@ -85,6 +95,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('revolveOffsetDistance') ?? defaultSettings['revolveOffsetDistance']!;
       swapPositionSpeed =
           prefs.getString('swapPositionSpeed') ?? defaultSettings['swapPositionSpeed']!;
+      simSpeed =
+          prefs.getString('simSpeed') ?? defaultSettings['simSpeed']!;
+      simMaxDistance =
+          prefs.getString('simMaxDistance') ?? defaultSettings['simMaxDistance']!;
       serverAddress =
           prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
 
@@ -94,16 +108,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       revolveSpeedController.text = revolveSpeed;
       revolveOffsetDistanceController.text = revolveOffsetDistance;
       swapPositionSpeedController.text = swapPositionSpeed;
+      simSpeedController.text = simSpeed;
+      simMaxDistanceController.text = simMaxDistance;
       serverAddressController.text = serverAddress;
     });
 
   
     if (kDebugMode) {
       print(
-          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
     }
     LogManager().addLog(
-        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, serverAddress=$serverAddress");
+        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
   }
 
   Future<void> _saveSettings() async {
@@ -114,6 +130,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('revolveSpeed', revolveSpeed);
     await prefs.setString('revolveOffsetDistance', revolveOffsetDistance);
     await prefs.setString('swapPositionSpeed', swapPositionSpeed);
+    await prefs.setString('simSpeed', simSpeed);
+    await prefs.setString('simMaxDistance', simMaxDistance);
     await prefs.setString('serverAddress', serverAddress);
 
     // Refresh caches so new values apply immediately
@@ -132,6 +150,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       revolveSpeed = defaultSettings['revolveSpeed']!;
       revolveOffsetDistance = defaultSettings['revolveOffsetDistance']!;
       swapPositionSpeed = defaultSettings['swapPositionSpeed']!;
+      simSpeed = defaultSettings['simSpeed']!;
+      simMaxDistance = defaultSettings['simMaxDistance']!;
       serverAddress = defaultSettings['serverAddress']!;
 
       takeoffAltitudeController.text = takeoffAltitude;
@@ -140,6 +160,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       revolveSpeedController.text = revolveSpeed;
       revolveOffsetDistanceController.text = revolveOffsetDistance;
       swapPositionSpeedController.text = swapPositionSpeed;
+      simSpeedController.text = simSpeed;
+      simMaxDistanceController.text = simMaxDistance;
       serverAddressController.text = serverAddress;
     });
 
@@ -272,6 +294,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => swapPositionSpeed = value,
               controller: swapPositionSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
+            ),
+            SizedBox(height: 10),
+            // Simulated Movement Settings
+            Text(
+              "Simulated Movement",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            // Simulated Speed
+            TextField(
+              decoration: InputDecoration(
+                labelText: "Simulated Speed",
+                hintText: "Meters per second",
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) => simSpeed = value,
+              controller: simSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
+            ),
+            SizedBox(height: 10),
+            // Simulated Max Distance
+            TextField(
+              decoration: InputDecoration(
+                labelText: "Simulated Max Distance",
+                hintText: "Meters",
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) => simMaxDistance = value,
+              controller: simMaxDistanceController,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(
                   RegExp(r'^[0-9]*\.?[0-9]*$'),
