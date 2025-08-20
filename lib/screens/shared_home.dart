@@ -146,7 +146,6 @@ class _SharedHomeState extends State<SharedHome> {
                   ? MapWidget(key: mobileMapKey)
                   : DesktopMapWidget(key: desktopMapKey))
               : const XYGraphWidget(),
-          const DroneInfoBottomSheet(),
           Positioned(
             top: 50,
             left: 20,
@@ -232,6 +231,7 @@ class _SharedHomeState extends State<SharedHome> {
               child:
                   MovementToggleButton(gpsService: simulatedGPSService),
             ),
+          const DroneInfoBottomSheet(),
         ],
       ),
     );

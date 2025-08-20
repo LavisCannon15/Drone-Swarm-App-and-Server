@@ -30,6 +30,7 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
 
   StreamSubscription<Map<String, dynamic>>? _locationSubscription;
   StreamSubscription<void>? _telemetrySubscription;
+  bool _hasCenteredOnUser = false;
 
   @override
   void initState() {
@@ -67,6 +68,10 @@ class DesktopMapWidgetState extends State<DesktopMapWidget> {
           (locationData["longitude"] as num).toDouble(),
         );
       });
+      if (!_hasCenteredOnUser) {
+        mapController.move(userLocation, mapController.camera.zoom);
+        _hasCenteredOnUser = true;
+      }
     });
   }
 

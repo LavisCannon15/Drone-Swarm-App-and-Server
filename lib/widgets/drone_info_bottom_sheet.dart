@@ -17,7 +17,7 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
   StreamSubscription<void>? _telemetrySubscription;
   Timer? _debounceTimer;
 
-  static const double _minSize = 0.03;
+  static const double _minSize = 0.1;
   static const double _maxSize = 0.8;
 
   @override
@@ -61,7 +61,9 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
       minChildSize: _minSize,
       maxChildSize: _maxSize,
       builder: (BuildContext context, ScrollController scrollController) {
-        return Container(
+        return SafeArea(
+          top: false,
+          child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -234,9 +236,10 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
               ),
             ],
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   Widget _buildSectionHeading(String heading) {
