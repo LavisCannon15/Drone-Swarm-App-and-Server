@@ -19,7 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Default values for settings
   final Map<String, String> defaultSettings = {
     "takeoffAltitude": "1",
-    "initialPositionSpeed": "10",
+    "initialPositionSpeed": "3",
     "targetAltitude": "1",
     "offsetDistance": "4",
     "revolveSpeed": "20",
@@ -32,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Current values for settings
   String takeoffAltitude = "3";
-  String initialPositionSpeed = "10";
+  String initialPositionSpeed = "3";
   String targetAltitude = "1";
   String offsetDistance = "4";
   String revolveSpeed = "20";
