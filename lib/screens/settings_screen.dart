@@ -79,6 +79,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  String _sanitizeServerAddress(String value) {
+    return value.replaceFirst(RegExp(r'^wss?://'), '');
+  }
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -99,8 +103,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('simSpeed') ?? defaultSettings['simSpeed']!;
       simMaxDistance =
           prefs.getString('simMaxDistance') ?? defaultSettings['simMaxDistance']!;
-      serverAddress =
-          prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
+      serverAddress = _sanitizeServerAddress(
+          prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
       targetAltitudeController.text = targetAltitude;
@@ -132,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('swapPositionSpeed', swapPositionSpeed);
     await prefs.setString('simSpeed', simSpeed);
     await prefs.setString('simMaxDistance', simMaxDistance);
-    await prefs.setString('serverAddress', serverAddress);
+    await prefs.setString('serverAddress', _sanitizeServerAddress(serverAddress));
 
     // Refresh caches so new values apply immediately
     await GPSService().refreshSettings();
@@ -152,7 +156,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       swapPositionSpeed = defaultSettings['swapPositionSpeed']!;
       simSpeed = defaultSettings['simSpeed']!;
       simMaxDistance = defaultSettings['simMaxDistance']!;
-      serverAddress = defaultSettings['serverAddress']!;
+      serverAddress =
+          _sanitizeServerAddress(defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
       targetAltitudeController.text = targetAltitude;
@@ -205,6 +210,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+            // Flight Settings
+            Text(
+              "Flight Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
             // Takeoff Altitude
             TextField(
               decoration: InputDecoration(
@@ -218,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 FilteringTextInputFormatter.allow(
                   RegExp(r'^[0-9]*\.?[0-9]*$'),
                 ),
-              ],             
+              ],
             ),
             SizedBox(height: 10),
             // Target Altitude
@@ -235,6 +246,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   RegExp(r'^[0-9]*\.?[0-9]*$'),
                 ),
               ],
+            ),
+            SizedBox(height: 20),
+            // Formation Settings
+            Text(
+              "Formation Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             // Offset Distance
@@ -300,7 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             // Simulated Movement Settings
             Text(
               "Simulated Movement",
@@ -338,6 +355,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+            SizedBox(height: 20),
+            // Server Settings
+            Text(
+              "Server Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 10),
             // Server Address
             TextField(
@@ -346,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 hintText: "Enter server address (e.g., 192.168.1.1:5000)",
               ),
               keyboardType: TextInputType.text,
-              onChanged: (value) => serverAddress = value,
+              onChanged: (value) => serverAddress = _sanitizeServerAddress(value),
               controller: serverAddressController,
             ),
             SizedBox(height: 20),
