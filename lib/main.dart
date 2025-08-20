@@ -8,18 +8,18 @@ import 'services/simulated_gps_service.dart';
 import 'screens/shared_home.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Global error handler for Flutter framework errors (No Stack Trace in LogManager)
-  FlutterError.onError = (FlutterErrorDetails details) {
-    String errorMessage = "❌ FLUTTER ERROR: ${details.exceptionAsString()}";
-    LogManager().addLog(errorMessage); // ✅ Logs error without stack trace
-    debugPrint("$errorMessage\nStack Trace:\n${details.stack.toString()}"); // ✅ Prints full stack trace in terminal
-    FlutterError.presentError(details);
-  };
-
   // ✅ Global error handler for all unhandled Dart async errors (No Stack Trace in LogManager)
   runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // ✅ Global error handler for Flutter framework errors (No Stack Trace in LogManager)
+    FlutterError.onError = (FlutterErrorDetails details) {
+      String errorMessage = "❌ FLUTTER ERROR: ${details.exceptionAsString()}";
+      LogManager().addLog(errorMessage); // ✅ Logs error without stack trace
+      debugPrint("$errorMessage\nStack Trace:\n${details.stack.toString()}"); // ✅ Prints full stack trace in terminal
+      FlutterError.presentError(details);
+    };
+
     // Initialize LogManager
     LogManager();
     LogManager().addLog("🚀 LogManager initialized!");
