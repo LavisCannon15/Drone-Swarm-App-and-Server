@@ -20,7 +20,7 @@ class SimulatedGPSService {
   double latitude = -35.3631723;
   double longitude = 149.1652375;
   double speed = 1.0;                  // meters per second
-  final double maxDistance = 20.0;
+  double maxDistance = 20.0;           // meters
 
   bool isStationary = false;
 
@@ -51,6 +51,9 @@ class SimulatedGPSService {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    speed = double.tryParse(prefs.getString('simSpeed') ?? '') ?? 1.0;
+    maxDistance =
+        double.tryParse(prefs.getString('simMaxDistance') ?? '') ?? 20.0;
     _offsetDistance =
         double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
     _revolveSpeed =
