@@ -19,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Default values for settings
   final Map<String, String> defaultSettings = {
     "takeoffAltitude": "1",
+    "initialPositionSpeed": "10",
     "targetAltitude": "1",
     "offsetDistance": "4",
     "revolveSpeed": "20",
@@ -31,6 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Current values for settings
   String takeoffAltitude = "3";
+  String initialPositionSpeed = "10";
   String targetAltitude = "1";
   String offsetDistance = "4";
   String revolveSpeed = "20";
@@ -41,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String serverAddress = "127.0.0.1:5000";
 
   late final TextEditingController takeoffAltitudeController;
+  late final TextEditingController initialPositionSpeedController;
   late final TextEditingController targetAltitudeController;
   late final TextEditingController offsetDistanceController;
   late final TextEditingController revolveSpeedController;
@@ -54,6 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     takeoffAltitudeController = TextEditingController();
+    initialPositionSpeedController = TextEditingController();
     targetAltitudeController = TextEditingController();
     offsetDistanceController = TextEditingController();
     revolveSpeedController = TextEditingController();
@@ -68,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     takeoffAltitudeController.dispose();
+    initialPositionSpeedController.dispose();
     targetAltitudeController.dispose();
     offsetDistanceController.dispose();
     revolveSpeedController.dispose();
@@ -89,6 +94,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       takeoffAltitude =
           prefs.getString('takeoffAltitude') ?? defaultSettings['takeoffAltitude']!;
+      initialPositionSpeed =
+          prefs.getString('initialPositionSpeed') ?? defaultSettings['initialPositionSpeed']!;
       targetAltitude =
           prefs.getString('targetAltitude') ?? defaultSettings['targetAltitude']!;
       offsetDistance =
@@ -107,6 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
+      initialPositionSpeedController.text = initialPositionSpeed;
       targetAltitudeController.text = targetAltitude;
       offsetDistanceController.text = offsetDistance;
       revolveSpeedController.text = revolveSpeed;
@@ -119,24 +127,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   
     if (kDebugMode) {
-      print(
-          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
+        print(
+            "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, initialPositionSpeed=$initialPositionSpeed, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
     }
     LogManager().addLog(
-        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
+        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, initialPositionSpeed=$initialPositionSpeed, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('takeoffAltitude', takeoffAltitude);
-    await prefs.setString('targetAltitude', targetAltitude);
-    await prefs.setString('offsetDistance', offsetDistance);
-    await prefs.setString('revolveSpeed', revolveSpeed);
-    await prefs.setString('revolveOffsetDistance', revolveOffsetDistance);
-    await prefs.setString('swapPositionSpeed', swapPositionSpeed);
-    await prefs.setString('simSpeed', simSpeed);
-    await prefs.setString('simMaxDistance', simMaxDistance);
-    await prefs.setString('serverAddress', _sanitizeServerAddress(serverAddress));
+      await prefs.setString('targetAltitude', targetAltitude);
+      await prefs.setString('initialPositionSpeed', initialPositionSpeed);
+      await prefs.setString('offsetDistance', offsetDistance);
+      await prefs.setString('revolveSpeed', revolveSpeed);
+      await prefs.setString('revolveOffsetDistance', revolveOffsetDistance);
+      await prefs.setString('swapPositionSpeed', swapPositionSpeed);
+      await prefs.setString('simSpeed', simSpeed);
+      await prefs.setString('simMaxDistance', simMaxDistance);
+      await prefs.setString('serverAddress', _sanitizeServerAddress(serverAddress));
 
     // Refresh caches so new values apply immediately
     await GPSService().refreshSettings();
@@ -149,6 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _resetToDefault() async {
     setState(() {
       takeoffAltitude = defaultSettings['takeoffAltitude']!;
+      initialPositionSpeed = defaultSettings['initialPositionSpeed']!;
       targetAltitude = defaultSettings['targetAltitude']!;
       offsetDistance = defaultSettings['offsetDistance']!;
       revolveSpeed = defaultSettings['revolveSpeed']!;
@@ -160,6 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sanitizeServerAddress(defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
+      initialPositionSpeedController.text = initialPositionSpeed;
       targetAltitudeController.text = targetAltitude;
       offsetDistanceController.text = offsetDistance;
       revolveSpeedController.text = revolveSpeed;
@@ -210,9 +221,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Flight Settings
+            // Takeoff Settings
             Text(
-              "Flight Settings",
+              "Takeoff Settings",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
@@ -232,6 +243,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: 10),
+            // Initial Position Speed
+            TextField(
+              decoration: InputDecoration(
+                labelText: "Initial Position Speed",
+                hintText: "Speed to initial position (m/s)",
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) => initialPositionSpeed = value,
+              controller: initialPositionSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            // Formation Settings
+            Text(
+              "Formation Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
             // Target Altitude
             TextField(
               decoration: InputDecoration(
@@ -246,12 +279,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   RegExp(r'^[0-9]*\.?[0-9]*$'),
                 ),
               ],
-            ),
-            SizedBox(height: 20),
-            // Formation Settings
-            Text(
-              "Formation Settings",
-              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             // Offset Distance

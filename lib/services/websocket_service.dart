@@ -201,6 +201,8 @@ class WebSocketService {
 
     final prefs = await SharedPreferences.getInstance();
     String takeoffAltitude = prefs.getString('takeoffAltitude') ?? "3";
+    String initialPositionSpeed =
+        prefs.getString('initialPositionSpeed') ?? "10";
     String targetAltitude = prefs.getString('targetAltitude') ?? "1";
     String offsetDistance = prefs.getString('offsetDistance') ?? "4";
     String revolveSpeed = prefs.getString('revolveSpeed') ?? "3";
@@ -226,6 +228,8 @@ class WebSocketService {
 
     Map<String, dynamic> commandData = {
       "takeoff_altitude": _parseParam(takeoffAltitude, 3.0, 'takeoff_altitude'),
+      "initial_position_speed":
+          _parseParam(initialPositionSpeed, 10.0, 'initial_position_speed'),
       "target_altitude": _parseParam(targetAltitude, 1.0, 'target_altitude'),
       "offset_distance": _parseParam(offsetDistance, 4.0, 'offset_distance'),
       "revolve_speed": _parseParam(revolveSpeed, 3.0, 'revolve_speed'),
