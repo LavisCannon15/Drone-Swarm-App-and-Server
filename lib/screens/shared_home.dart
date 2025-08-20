@@ -146,7 +146,6 @@ class _SharedHomeState extends State<SharedHome> {
                   ? MapWidget(key: mobileMapKey)
                   : DesktopMapWidget(key: desktopMapKey))
               : const XYGraphWidget(),
-          const DroneInfoBottomSheet(),
           Positioned(
             top: 50,
             left: 20,
@@ -186,7 +185,7 @@ class _SharedHomeState extends State<SharedHome> {
             child: const TelemetryWidget(),
           ),
           Positioned(
-            bottom: 180,
+            bottom: 220,
             right: 20,
             child: MapTypeButton(
               isMapView: isMapView,
@@ -216,7 +215,7 @@ class _SharedHomeState extends State<SharedHome> {
             ),
           ),
           Positioned(
-            bottom: 120,
+            bottom: 160,
             right: 20,
             child: RecenterButton(
               desktopMapKey: desktopMapKey,
@@ -227,11 +226,11 @@ class _SharedHomeState extends State<SharedHome> {
               (defaultTargetPlatform != TargetPlatform.android &&
                   defaultTargetPlatform != TargetPlatform.iOS))
             Positioned(
-              bottom: 60,
+              bottom: 100,
               right: 20,
-              child:
-                  MovementToggleButton(gpsService: simulatedGPSService),
+              child: MovementToggleButton(gpsService: simulatedGPSService),
             ),
+          const DroneInfoBottomSheet(),
         ],
       ),
     );
