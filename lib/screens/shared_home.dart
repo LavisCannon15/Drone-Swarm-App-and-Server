@@ -13,6 +13,7 @@ import '../widgets/recenter_button.dart';
 import '../widgets/drone_info_bottom_sheet.dart';
 import '../widgets/xy_graph_widget.dart';
 import '../widgets/map_type_button.dart';
+import '../widgets/movement_toggle_button.dart';
 import 'settings_screen.dart';
 import 'drone_management_screen.dart';
 import 'console_screen.dart';
@@ -222,6 +223,15 @@ class _SharedHomeState extends State<SharedHome> {
               mobileMapKey: mobileMapKey,
             ),
           ),
+          if (kIsWeb ||
+              (defaultTargetPlatform != TargetPlatform.android &&
+                  defaultTargetPlatform != TargetPlatform.iOS))
+            Positioned(
+              bottom: 60,
+              right: 20,
+              child:
+                  MovementToggleButton(gpsService: simulatedGPSService),
+            ),
         ],
       ),
     );
