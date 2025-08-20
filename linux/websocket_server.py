@@ -235,6 +235,7 @@ async def handle_start_operations(params):
 
     # ✅ Extract parameters from WebSocket message
     takeoff_altitude = params.get("takeoff_altitude", 3.0)
+    initial_position_speed = params.get("initial_position_speed", 10.0)
     target_altitude = params.get("target_altitude", 1.0)
     offset_distance = params.get("offset_distance", 4.0)
     revolve_speed = params.get("revolve_speed", 1.0)
@@ -249,6 +250,7 @@ async def handle_start_operations(params):
         "revolve_speed": revolve_speed,
         "revolve_offset_distance": revolve_offset_distance,
         "swap_position_speed": swap_position_speed,  # ✅ Store Swap Position Speed
+        "initial_position_speed": initial_position_speed,
     })
 
     # ✅ Only pass the list of `Vehicle` objects, NOT tuples
