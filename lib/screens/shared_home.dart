@@ -139,13 +139,17 @@ class _SharedHomeState extends State<SharedHome> {
       ),
       body: Stack(
         children: [
-          isMapView
-              ? (!kIsWeb &&
+          IndexedStack(
+            index: isMapView ? 0 : 1,
+            children: [
+              !kIsWeb &&
                       (defaultTargetPlatform == TargetPlatform.android ||
                           defaultTargetPlatform == TargetPlatform.iOS)
                   ? MapWidget(key: mobileMapKey)
-                  : DesktopMapWidget(key: desktopMapKey))
-              : const XYGraphWidget(),
+                  : DesktopMapWidget(key: desktopMapKey),
+              const XYGraphWidget(),
+            ],
+          ),
           Positioned(
             top: 50,
             left: 20,
