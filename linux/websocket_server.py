@@ -16,7 +16,7 @@ logging.basicConfig(
 
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
-drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
+drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0, "kalman_user_speed": 10.0}  # Holds GPS & movement settings
 telemetry_task = None
 drone_thread = None
 
@@ -240,6 +240,7 @@ async def handle_start_operations(params):
     revolve_speed = params.get("revolve_speed", 1.0)
     revolve_offset_distance = params.get("revolve_offset_distance", 4.0)
     swap_position_speed = params.get("swap_position_speed", 2.0)  # ✅ Get Swap Position Speed
+    kalman_user_speed = params.get("kalman_user_speed", 10.0)
 
     drone_command_data.update({
         "offset_distance": offset_distance,
@@ -249,6 +250,7 @@ async def handle_start_operations(params):
         "revolve_speed": revolve_speed,
         "revolve_offset_distance": revolve_offset_distance,
         "swap_position_speed": swap_position_speed,  # ✅ Store Swap Position Speed
+        "kalman_user_speed": kalman_user_speed,
     })
 
     # ✅ Only pass the list of `Vehicle` objects, NOT tuples

@@ -191,7 +191,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     # Allow a moment for all drones to stabilize after the takeoff command
 
     logger.info("Moving to positions")
-    kalman_user_speed = 10
+    kalman_user_speed = websocket_data_stream.get("kalman_user_speed", 10)
 
     # Read initial user location from WebSocket data stream
     current_lat = websocket_data_stream.get("latitude", 0.0)

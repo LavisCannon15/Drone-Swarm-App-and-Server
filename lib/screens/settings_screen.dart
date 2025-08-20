@@ -20,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final Map<String, String> defaultSettings = {
     "takeoffAltitude": "1",
     "targetAltitude": "1",
+    "kalmanUserSpeed": "10",
     "offsetDistance": "4",
     "revolveSpeed": "20",
     "revolveOffsetDistance": "4",
@@ -32,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Current values for settings
   String takeoffAltitude = "3";
   String targetAltitude = "1";
+  String kalmanUserSpeed = "10";
   String offsetDistance = "4";
   String revolveSpeed = "20";
   String revolveOffsetDistance = "4";
@@ -42,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   late final TextEditingController takeoffAltitudeController;
   late final TextEditingController targetAltitudeController;
+  late final TextEditingController kalmanUserSpeedController;
   late final TextEditingController offsetDistanceController;
   late final TextEditingController revolveSpeedController;
   late final TextEditingController revolveOffsetDistanceController;
@@ -55,6 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     takeoffAltitudeController = TextEditingController();
     targetAltitudeController = TextEditingController();
+    kalmanUserSpeedController = TextEditingController();
     offsetDistanceController = TextEditingController();
     revolveSpeedController = TextEditingController();
     revolveOffsetDistanceController = TextEditingController();
@@ -69,6 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     takeoffAltitudeController.dispose();
     targetAltitudeController.dispose();
+    kalmanUserSpeedController.dispose();
     offsetDistanceController.dispose();
     revolveSpeedController.dispose();
     revolveOffsetDistanceController.dispose();
@@ -79,6 +84,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  String _sanitizeServerAddress(String value) {
+    return value.replaceFirst(RegExp(r'^wss?://'), '');
+  }
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -87,6 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('takeoffAltitude') ?? defaultSettings['takeoffAltitude']!;
       targetAltitude =
           prefs.getString('targetAltitude') ?? defaultSettings['targetAltitude']!;
+      kalmanUserSpeed =
+          prefs.getString('kalmanUserSpeed') ?? defaultSettings['kalmanUserSpeed']!;
       offsetDistance =
           prefs.getString('offsetDistance') ?? defaultSettings['offsetDistance']!;
       revolveSpeed =
@@ -99,11 +110,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           prefs.getString('simSpeed') ?? defaultSettings['simSpeed']!;
       simMaxDistance =
           prefs.getString('simMaxDistance') ?? defaultSettings['simMaxDistance']!;
-      serverAddress =
-          prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!;
+      serverAddress = _sanitizeServerAddress(
+          prefs.getString('serverAddress') ?? defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
       targetAltitudeController.text = targetAltitude;
+      kalmanUserSpeedController.text = kalmanUserSpeed;
       offsetDistanceController.text = offsetDistance;
       revolveSpeedController.text = revolveSpeed;
       revolveOffsetDistanceController.text = revolveOffsetDistance;
@@ -116,23 +128,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
     if (kDebugMode) {
       print(
-          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
+          "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, kalmanUserSpeed=$kalmanUserSpeed, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
     }
     LogManager().addLog(
-        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
+        "📥 Loaded settings: takeoffAltitude=$takeoffAltitude, targetAltitude=$targetAltitude, kalmanUserSpeed=$kalmanUserSpeed, offsetDistance=$offsetDistance, revolveSpeed=$revolveSpeed, revolveOffsetDistance=$revolveOffsetDistance, swapPositionSpeed=$swapPositionSpeed, simSpeed=$simSpeed, simMaxDistance=$simMaxDistance, serverAddress=$serverAddress");
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('takeoffAltitude', takeoffAltitude);
     await prefs.setString('targetAltitude', targetAltitude);
+    await prefs.setString('kalmanUserSpeed', kalmanUserSpeed);
     await prefs.setString('offsetDistance', offsetDistance);
     await prefs.setString('revolveSpeed', revolveSpeed);
     await prefs.setString('revolveOffsetDistance', revolveOffsetDistance);
     await prefs.setString('swapPositionSpeed', swapPositionSpeed);
     await prefs.setString('simSpeed', simSpeed);
     await prefs.setString('simMaxDistance', simMaxDistance);
-    await prefs.setString('serverAddress', serverAddress);
+    await prefs.setString('serverAddress', _sanitizeServerAddress(serverAddress));
 
     // Refresh caches so new values apply immediately
     await GPSService().refreshSettings();
@@ -146,16 +159,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       takeoffAltitude = defaultSettings['takeoffAltitude']!;
       targetAltitude = defaultSettings['targetAltitude']!;
+      kalmanUserSpeed = defaultSettings['kalmanUserSpeed']!;
       offsetDistance = defaultSettings['offsetDistance']!;
       revolveSpeed = defaultSettings['revolveSpeed']!;
       revolveOffsetDistance = defaultSettings['revolveOffsetDistance']!;
       swapPositionSpeed = defaultSettings['swapPositionSpeed']!;
       simSpeed = defaultSettings['simSpeed']!;
       simMaxDistance = defaultSettings['simMaxDistance']!;
-      serverAddress = defaultSettings['serverAddress']!;
+      serverAddress =
+          _sanitizeServerAddress(defaultSettings['serverAddress']!);
 
       takeoffAltitudeController.text = takeoffAltitude;
       targetAltitudeController.text = targetAltitude;
+      kalmanUserSpeedController.text = kalmanUserSpeed;
       offsetDistanceController.text = offsetDistance;
       revolveSpeedController.text = revolveSpeed;
       revolveOffsetDistanceController.text = revolveOffsetDistance;
@@ -205,6 +221,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+            // Takeoff Settings
+            Text(
+              "Takeoff Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
             // Takeoff Altitude
             TextField(
               decoration: InputDecoration(
@@ -218,7 +240,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 FilteringTextInputFormatter.allow(
                   RegExp(r'^[0-9]*\.?[0-9]*$'),
                 ),
-              ],             
+              ],
+            ),
+            SizedBox(height: 10),
+            // Kalman User Speed
+            TextField(
+              decoration: InputDecoration(
+                labelText: "Kalman User Speed",
+                hintText: "Speed to initial user location",
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) => kalmanUserSpeed = value,
+              controller: kalmanUserSpeedController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^[0-9]*\.?[0-9]*$'),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            // Formation Settings
+            Text(
+              "Formation Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             // Target Altitude
@@ -300,7 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             // Simulated Movement Settings
             Text(
               "Simulated Movement",
@@ -338,6 +382,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+            SizedBox(height: 20),
+            // Server Settings
+            Text(
+              "Server Settings",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 10),
             // Server Address
             TextField(
@@ -346,7 +396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 hintText: "Enter server address (e.g., 192.168.1.1:5000)",
               ),
               keyboardType: TextInputType.text,
-              onChanged: (value) => serverAddress = value,
+              onChanged: (value) => serverAddress = _sanitizeServerAddress(value),
               controller: serverAddressController,
             ),
             SizedBox(height: 20),

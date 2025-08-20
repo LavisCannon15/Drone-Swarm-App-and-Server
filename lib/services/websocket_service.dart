@@ -207,6 +207,7 @@ class WebSocketService {
     String revolveOffsetDistance =
         prefs.getString('revolveOffsetDistance') ?? "4";
     String swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? "1";
+    String kalmanUserSpeed = prefs.getString('kalmanUserSpeed') ?? "10";
     String selectedMode = prefs.getString('selectedMode') ?? "Normal";
 
     double _parseParam(String value, double defaultValue, String name) {
@@ -233,6 +234,8 @@ class WebSocketService {
           _parseParam(revolveOffsetDistance, 4.0, 'revolve_offset_distance'),
       "swap_position_speed":
           _parseParam(swapPositionSpeed, 1.0, 'swap_position_speed'),
+      "kalman_user_speed":
+          _parseParam(kalmanUserSpeed, 10.0, 'kalman_user_speed'),
       "orbit_around_user": selectedMode == "Orbit",
       "swap_positions": selectedMode == "Swap Positions",
       "rotate_triangle_formation": selectedMode == "Rotate Triangle"
