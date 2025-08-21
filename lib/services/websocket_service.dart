@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import '../services/log_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService {
@@ -65,7 +68,8 @@ class WebSocketService {
 
   Future<bool> _attemptConnection(String url) async {
     try {
-       _webSocket = WebSocketChannel.connect(Uri.parse(url));
+      final socket = await WebSocket.connect(url);
+      _webSocket = IOWebSocketChannel(socket);
       isConnected = true;
       _connectionStatusController.add(true);
 
@@ -74,11 +78,8 @@ class WebSocketService {
       }
       LogManager().addLog("✅ Connected to WebSocket: $url");
 
-      // Subscribe to logs
-      _webSocket.sink.add(jsonEncode({"command": "subscribe_logs"}));
-
       _webSocket.stream.listen(
-        (data) => _handleIncomingMessage(data), // Process incoming messages
+        (data) => _handleIncomingMessage(data),
         onDone: () {
           if (kDebugMode) {
             print("🔌 WebSocket connection closed.");
@@ -94,6 +95,10 @@ class WebSocketService {
           _handleDisconnect();
         },
       );
+
+      // Subscribe to logs
+      _webSocket.sink.add(jsonEncode({"command": "subscribe_logs"}));
+
       return true;
     } catch (e) {
       if (kDebugMode) {
