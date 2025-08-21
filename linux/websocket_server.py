@@ -109,8 +109,21 @@ async def handle_client(websocket, path):
                 }))
 
     except websockets.exceptions.ConnectionClosed:
-        await log_message("⚠️ Client disconnected! Landing all drones.")
-        await handle_stop_operations()  # ✅ Auto-land drones when client disconnects
+        # Only land drones if any are connected. Otherwise just clear state.
+        if vehicles:
+            await log_message("⚠️ Client disconnected! Landing all drones.")
+            await handle_stop_operations()  # ✅ Auto-land drones when client disconnects
+        else:
+            await log_message("⚠️ Client disconnected! No drones to land.")
+            # Clear any lingering telemetry task
+            global telemetry_task
+            if telemetry_task and not telemetry_task.done():
+                telemetry_task.cancel()
+                try:
+                    await telemetry_task
+                except asyncio.CancelledError:
+                    pass
+            telemetry_task = None
 
     except Exception as e:
         # ✅ Log any unexpected errors in the server console
@@ -140,45 +153,72 @@ async def handle_connect_command(websocket, params):
     global vehicles
     vehicles.clear()  # ✅ Clear old connections
 
-    for drone_id, drone_ip in drones.items():
-        try:
-            await log_message(f"Connecting {drone_id} to {drone_ip}")
-            
-            loop = asyncio.get_running_loop()
-            vehicle = await loop.run_in_executor(
-                None, functools.partial(connect, drone_ip, wait_ready=True)
-            )  # ✅ Connect to the drone
-            vehicle.id = drone_id  # ✅ Assign a drone ID to the vehicle
-            vehicles[drone_id] = vehicle  # ✅ Store in vehicles dictionary
+    connected = []
+    failed = []
 
+    async def connect_drone(drone_id, drone_ip):
+        """Attempt to connect a single drone with timeout."""
+        await log_message(f"Connecting {drone_id} to {drone_ip}")
+        loop = asyncio.get_running_loop()
+        try:
+            vehicle = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None, functools.partial(connect, drone_ip, wait_ready=True)
+                ),
+                timeout=10,
+            )
+            vehicle.id = drone_id
+            vehicles[drone_id] = vehicle
+            connected.append(drone_id)
             await log_message(f"{drone_id} connected successfully at {drone_ip}.")
         except Exception as e:
+            failed.append(drone_id)
             await log_message(f"Failed to connect {drone_id}: {e}")
-            await websocket.send(json.dumps({
-                "status": "error",
-                "drone_id": drone_id,
-                "message": str(e)
-            }))
-            continue
+
+    tasks = [connect_drone(drone_id, ip) for drone_id, ip in drones.items()]
+    gather_task = asyncio.gather(*tasks)
+
+    async def keepalive():
+        """Send periodic messages so the client doesn't timeout."""
+        while not gather_task.done():
+            try:
+                await websocket.send(json.dumps({
+                    "status": "connecting",
+                    "message": "Attempting to connect to drones...",
+                }))
+            except websockets.exceptions.ConnectionClosed:
+                break
+            await asyncio.sleep(1)
+
+    heartbeat = asyncio.create_task(keepalive())
+    await gather_task
+    heartbeat.cancel()
+    try:
+        await heartbeat
+    except asyncio.CancelledError:
+        pass
 
     # ✅ Debug print the final stored vehicles dictionary
     await log_message(f"🔍 DEBUG: Vehicles Stored → {vehicles}")
 
+    status = "success" if not failed else "error" if not connected else "partial"
+
     await websocket.send(json.dumps({
-        "status": "success",
-        "message": "All connection attempts completed.",
-        "vehicles": {drone_id: str(vehicle) for drone_id, vehicle in vehicles.items()}  # ✅ Send back stored connections
+        "status": status,
+        "connected": connected,
+        "failed": failed,
     }))
 
-    # ✅ Start telemetry updates immediately after connecting
-    global telemetry_task
-    if telemetry_task and not telemetry_task.done():
-        telemetry_task.cancel()
-        try:
-            await telemetry_task
-        except asyncio.CancelledError:
-            pass
-    telemetry_task = asyncio.create_task(send_telemetry())
+    # ✅ Start telemetry updates immediately after connecting if at least one drone connected
+    if connected:
+        global telemetry_task
+        if telemetry_task and not telemetry_task.done():
+            telemetry_task.cancel()
+            try:
+                await telemetry_task
+            except asyncio.CancelledError:
+                pass
+        telemetry_task = asyncio.create_task(send_telemetry())
 
 
 
