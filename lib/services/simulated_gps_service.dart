@@ -22,7 +22,7 @@ class SimulatedGPSService {
   double speed = 1.0;                  // meters per second
   double maxDistance = 20.0;           // meters
 
-  bool isStationary = false;
+  bool isStationary = true;
 
   double _distanceTraveled = 0.0;
   int _direction = 1;                  // 1 = north, -1 = south
