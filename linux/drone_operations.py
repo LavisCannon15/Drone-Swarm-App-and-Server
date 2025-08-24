@@ -314,7 +314,12 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 logger.info("User is moving")
 
             # Monitor drones for issues (battery, GPS, etc.)
-            if monitor_drones(drones, low_battery_threshold=20, stop_operations_event=stop_operations_event):
+            should_stop = monitor_drones(
+                drones,
+                low_battery_threshold=20,
+                stop_operations_event=stop_operations_event,
+            )
+            if should_stop:
                 break  # Stop operations if monitoring indicates issues
 
     except (KeyboardInterrupt, TimeoutError, ValueError, Exception) as e:
