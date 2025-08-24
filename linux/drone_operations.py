@@ -24,6 +24,34 @@ from position_calculations import (
 logger = logging.getLogger(__name__)
 
 
+def run_preflight_checks(drones):
+    """Return status of basic pre-flight diagnostics for each drone."""
+    results = []
+    all_passed = True
+    for drone in drones:
+        drone_id = getattr(drone, "id", "Unknown")
+        battery_level = getattr(drone.battery, "level", None)
+        gps_fix = getattr(getattr(drone, "gps_0", None), "fix_type", None)
+        mode_name = str(getattr(getattr(drone, "mode", None), "name", ""))
+
+        drone_result = {
+            "drone_id": drone_id,
+            "battery_ok": battery_level is not None and battery_level >= 20,
+            "gps_ok": gps_fix is not None and gps_fix >= 2,
+            "mode_ok": mode_name == "GUIDED",
+            "battery_level": battery_level,
+            "gps_fix": gps_fix,
+            "mode": mode_name,
+        }
+
+        if not (drone_result["battery_ok"] and drone_result["gps_ok"] and drone_result["mode_ok"]):
+            all_passed = False
+
+        results.append(drone_result)
+
+    return all_passed, results
+
+
 def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
     logger.info(f"{drone_id}: Changing to GUIDED mode...")
     vehicle.mode = VehicleMode("GUIDED")
@@ -173,6 +201,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     stagger_step = 1  # Altitude increment for each drone
     base_altitude = takeoff_altitude  # Starting altitude for the first drone
 
+    logger.info("Phase: takeoff start")
     for idx, drone in enumerate(drones):
         drone_id = drone.id if hasattr(drone, 'id') else f"Drone {idx+1}"
         staggered_altitude = base_altitude + (idx * stagger_step)
@@ -187,6 +216,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     # Wait for all arming and takeoff threads to finish
     for thread in threads:
         thread.join()
+    logger.info("Phase: takeoff complete")
 
     # Allow a moment for all drones to stabilize after the takeoff command
 
@@ -198,10 +228,12 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     current_lon = websocket_data_stream.get("longitude", 0.0)
     offset_distance = websocket_data_stream.get("offset_distance", 3.0)
 
+    logger.info("Phase: formation positioning start")
     # Compute triangle formation based on initial user location
     triangle_positions = calculate_triangle_positions(current_lat, current_lon, offset_distance)
     move_to_initial_positions(drones, triangle_positions, initial_position_speed)
     wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event)
+    logger.info("Phase: formation positioning complete")
     
     time.sleep(4)
 
@@ -212,6 +244,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     last_known_lat, last_known_lon = None, None  # Initialize last known coordinates
     is_stationary = False  # Initialize stationary flag
 
+    logger.info("Phase: active operation start")
     try:
         # Main loop: move drones based on real-time user movement
         while not stop_operations_event.is_set():
@@ -326,6 +359,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
         handle_drone_exceptions(e, stop_operations_event)
 
     finally:
+        logger.info("Phase: landing start")
         # Ensure that the drones land regardless of the reason for stopping
         for drone in drones:
             drone_id = drone.id if hasattr(drone, 'id') else 'Unknown'
@@ -334,4 +368,4 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             except Exception as e:
                 logger.error(f"Error during landing of {drone_id}: {e}")
 
-        logger.info("Drones have landed safely.")
+        logger.info("Phase: landing complete")

@@ -9,6 +9,7 @@ Operators can track multiple vehicles, issue flight commands, and view telemetry
 - Drone management: add, remove, connect, and disconnect endpoints
 - Console log viewer and XY telemetry graph
 - Logs persist to a rolling file and can be exported from the console
+- Server forwards drone operation logs (pre-flight checks, phase changes, anomalies) to the console
 - Background execution on Android via foreground service
 - Python server built with DroneKit for multi‑drone control
 
