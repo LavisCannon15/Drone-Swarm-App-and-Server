@@ -24,40 +24,18 @@ from position_calculations import (
 logger = logging.getLogger(__name__)
 
 
-def run_preflight_checks(drones):
-    """Return status of basic pre-flight diagnostics for each drone."""
-    results = []
-    all_passed = True
-    for drone in drones:
-        drone_id = getattr(drone, "id", "Unknown")
-        battery_level = getattr(drone.battery, "level", None)
-        gps_fix = getattr(getattr(drone, "gps_0", None), "fix_type", None)
-        mode_name = str(getattr(getattr(drone, "mode", None), "name", ""))
-
-        drone_result = {
-            "drone_id": drone_id,
-            "battery_ok": battery_level is not None and battery_level >= 20,
-            "gps_ok": gps_fix is not None and gps_fix >= 2,
-            "mode_ok": mode_name == "GUIDED",
-            "battery_level": battery_level,
-            "gps_fix": gps_fix,
-            "mode": mode_name,
-        }
-
-        if not (drone_result["battery_ok"] and drone_result["gps_ok"] and drone_result["mode_ok"]):
-            all_passed = False
-
-        results.append(drone_result)
-
-    return all_passed, results
-
-
 def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
+    """Arm the vehicle and take off, relying on ArduPilot for state checks."""
+
     logger.info(f"{drone_id}: Changing to GUIDED mode...")
-    vehicle.mode = VehicleMode("GUIDED")
+    try:
+        vehicle.mode = VehicleMode("GUIDED")
+    except Exception as e:
+        logger.error(f"{drone_id}: Failed to set GUIDED mode: {e}")
+        return
 
     # Wait until the vehicle is in GUIDED mode
-    while not vehicle.mode.name == "GUIDED":
+    while vehicle.mode.name != "GUIDED":
         if stop_operations_event.is_set():
             logger.warning(f"{drone_id}: Stop signal received. Aborting mode change.")
             return
@@ -73,7 +51,11 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
         time.sleep(1)
 
     logger.info(f"{drone_id}: Arming...")
-    vehicle.armed = True
+    try:
+        vehicle.armed = True
+    except Exception as e:
+        logger.error(f"{drone_id}: Arming failed: {e}")
+        return
 
     while not vehicle.armed:
         if stop_operations_event.is_set():
@@ -83,7 +65,11 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
         time.sleep(1)
 
     logger.info(f"{drone_id}: Taking off to {target_altitude} meters...")
-    vehicle.simple_takeoff(target_altitude)
+    try:
+        vehicle.simple_takeoff(target_altitude)
+    except Exception as e:
+        logger.error(f"{drone_id}: Takeoff failed: {e}")
+        return
 
     while True:
         if stop_operations_event.is_set():
