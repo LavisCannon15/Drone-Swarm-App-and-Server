@@ -5,7 +5,7 @@ import logging
 import threading
 import functools
 from dronekit import connect
-from drone_operations import operate_drones, land
+from drone_operations import operate_drones, land, run_preflight_checks
 from global_vars import stop_operations_event
 
 logging.basicConfig(
@@ -19,6 +19,19 @@ server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
 telemetry_task = None
 drone_thread = None
+heartbeat_stale = {}  # Track heartbeat health per drone
+
+
+class WebsocketLogHandler(logging.Handler):
+    """Logging handler that forwards records to WebSocket clients."""
+
+    def __init__(self, loop):
+        super().__init__()
+        self.loop = loop
+
+    def emit(self, record):
+        msg = self.format(record)
+        asyncio.run_coroutine_threadsafe(log_message(msg), self.loop)
 
 async def send_telemetry():
     """
@@ -32,6 +45,16 @@ async def send_telemetry():
         telemetry_data = []
         for drone_id, vehicle in vehicles.items():
             try:
+                hb = getattr(vehicle, "last_heartbeat", 0)
+                if hb > 5:
+                    if not heartbeat_stale.get(drone_id):
+                        await log_message(f"⚠️ {drone_id} heartbeat lost ({hb:.1f}s)")
+                        heartbeat_stale[drone_id] = True
+                else:
+                    if heartbeat_stale.get(drone_id):
+                        await log_message(f"✅ {drone_id} heartbeat restored")
+                        heartbeat_stale[drone_id] = False
+
                 telemetry = {
                     "drone_id": drone_id,
                     "latitude": vehicle.location.global_relative_frame.lat,
@@ -53,7 +76,7 @@ async def send_telemetry():
                     "vehicle_mode": str(vehicle.mode.name),
                     "ekf_ok": vehicle.ekf_ok,
                     "system_status": str(vehicle.system_status.state),
-                    "heartbeat": vehicle.last_heartbeat,
+                    "heartbeat": hb,
                     "message_factory": str(vehicle.message_factory),
                 }
                 telemetry_data.append(telemetry)
@@ -269,6 +292,16 @@ async def handle_start_operations(params):
         await log_message("🚨 No drones connected! Cannot start operations.")
         return
 
+    # Run pre-flight checks
+    all_ok, results = run_preflight_checks(vehicles.values())
+    for res in results:
+        await log_message(
+            f"Preflight {res['drone_id']} → Battery:{res['battery_level']}% GPS:{res['gps_fix']} Mode:{res['mode']}"
+        )
+    if not all_ok:
+        await log_message("❌ Pre-flight checks failed. Aborting start.")
+        return
+
     await log_message("🚀 Starting drone operations...")
 
     stop_operations_event.clear()
@@ -373,6 +406,11 @@ async def main():
     """
     Starts the WebSocket server.
     """
+    loop = asyncio.get_running_loop()
+    handler = WebsocketLogHandler(loop)
+    logging.getLogger("drone_operations").addHandler(handler)
+    logging.getLogger("error_handler").addHandler(handler)
+
     server = await websockets.serve(handle_client, "0.0.0.0", 5000)
     await log_message("WebSocket server running at ws://0.0.0.0:5000")
     await server.wait_closed()
