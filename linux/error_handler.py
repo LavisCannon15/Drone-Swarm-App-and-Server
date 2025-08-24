@@ -85,7 +85,11 @@ def check_gps(drone, stop_operations_event):
 
 
 def monitor_drones(drones, low_battery_threshold, stop_operations_event):
-    """Monitor all drones for potential issues."""
+    """Monitor all drones for potential issues.
+
+    Returns:
+        bool: ``True`` if any monitoring check fails, otherwise ``False``.
+    """
     for drone in drones:
         try:
             check_battery(drone, low_battery_threshold, stop_operations_event)
@@ -93,3 +97,6 @@ def monitor_drones(drones, low_battery_threshold, stop_operations_event):
             check_gps(drone, stop_operations_event)
         except Exception as e:
             handle_drone_exceptions(e, stop_operations_event)
+            return True
+
+    return False
