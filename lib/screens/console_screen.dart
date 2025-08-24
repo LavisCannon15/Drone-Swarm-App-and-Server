@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/log_manager.dart';
 import '../services/websocket_service.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ConsoleScreen extends StatefulWidget {
 const ConsoleScreen({super.key});
@@ -107,6 +108,15 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
         },
 
 
+      ),
+
+      IconButton(
+        icon: Icon(Icons.share),
+        tooltip: "Export Logs",
+        onPressed: () async {
+          final file = await LogManager().getLogFile();
+          await Share.shareXFiles([XFile(file.path)], text: 'Application Logs');
+        },
       ),
 
 

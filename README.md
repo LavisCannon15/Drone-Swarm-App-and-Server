@@ -8,6 +8,7 @@ Operators can track multiple vehicles, issue flight commands, and view telemetry
 - Interactive map with Google Maps or FMTC tiles
 - Drone management: add, remove, connect, and disconnect endpoints
 - Console log viewer and XY telemetry graph
+- Logs persist to a rolling file and can be exported from the console
 - Background execution on Android via foreground service
 - Python server built with DroneKit for multi‑drone control
 
@@ -45,6 +46,13 @@ flutter run
 2. In the app, open **Settings** to set the server address.
 3. Use **Manage Drones** to add drone endpoints.
 4. Tap **Connect** and start sending telemetry.
+
+## Log Management
+
+The in-app console writes logs to a rolling file stored in the application's
+documents directory. The latest 500 entries are retained, and older entries are
+pruned automatically. Use the share button on the **Console** screen to export
+the log file for debugging or support.
 
 ## Background Execution (Android)
 
