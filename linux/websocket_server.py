@@ -5,7 +5,7 @@ import logging
 import threading
 import functools
 from dronekit import connect
-from drone_operations import operate_drones, land, run_preflight_checks
+from drone_operations import operate_drones, land
 from global_vars import stop_operations_event
 
 logging.basicConfig(
@@ -290,16 +290,6 @@ async def handle_start_operations(params):
 
     if not vehicles:
         await log_message("🚨 No drones connected! Cannot start operations.")
-        return
-
-    # Run pre-flight checks
-    all_ok, results = run_preflight_checks(vehicles.values())
-    for res in results:
-        await log_message(
-            f"Preflight {res['drone_id']} → Battery:{res['battery_level']}% GPS:{res['gps_fix']} Mode:{res['mode']}"
-        )
-    if not all_ok:
-        await log_message("❌ Pre-flight checks failed. Aborting start.")
         return
 
     await log_message("🚀 Starting drone operations...")
