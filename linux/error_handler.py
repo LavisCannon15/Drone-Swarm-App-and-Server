@@ -42,6 +42,7 @@ def handle_drone_exceptions(e, stop_operations_event):
 def check_battery(drone, low_battery_threshold, stop_operations_event):
     """Check if the drone's battery is below the threshold."""
     if drone.battery.level < low_battery_threshold:
+        logger.warning(f"{drone.id}: Battery low at {drone.battery.level}%")
         raise LowBatteryError(f"Drone {drone.id} battery level is too low: {drone.battery.level}.")
 
 
@@ -56,10 +57,13 @@ def check_drone_status(drone, stop_operations_event):
 
     # Check for potential crash conditions
     if vertical_velocity < -5 and altitude < 1:
+        logger.warning(f"{drone.id}: Possible crash detected (v={vertical_velocity}, alt={altitude})")
         raise DroneCrashError(f"Drone {drone.id} has crashed or is not in a flying state.")
     if attitude_error > 30:  # Threshold for angle error
+        logger.warning(f"{drone.id}: Excessive attitude error {attitude_error} degrees")
         raise DroneCrashError(f"Drone {drone.id} has excessive attitude error: {attitude_error} degrees.")
     if not drone.armed:
+        logger.warning(f"{drone.id}: Drone unexpectedly disarmed")
         raise DroneCrashError(f"Drone {drone.id} unexpectedly disarmed.")
 
 
@@ -77,10 +81,12 @@ def check_gps(drone, stop_operations_event):
 
     # Check the GPS fix type
     if gps_info.fix_type < 2:  # No fix or 2D fix
+        logger.warning(f"{drone.id}: GPS fix lost ({gps_info.fix_type})")
         raise GPSLossError(f"Drone {drone.id} has lost GPS signal or has insufficient GPS accuracy. Fix type: {gps_info.fix_type}.")
 
     # Optionally check for number of satellites visible for more robustness
     if gps_info.satellites_visible < 4:  # Less than 4 satellites is generally considered unreliable
+        logger.warning(f"{drone.id}: Low satellite count {gps_info.satellites_visible}")
         raise GPSLossError(f"Drone {drone.id} has insufficient satellite visibility: {gps_info.satellites_visible} satellites.")
 
 
