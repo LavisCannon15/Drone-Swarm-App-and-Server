@@ -35,19 +35,27 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
         return
 
     # Wait until the vehicle is in GUIDED mode
+    last_guided_log = 0
     while vehicle.mode.name != "GUIDED":
         if stop_operations_event.is_set():
             logger.warning(f"{drone_id}: Stop signal received. Aborting mode change.")
             return
-        logger.info(f"{drone_id}: Waiting for GUIDED mode...")
+        current_time = time.time()
+        if current_time - last_guided_log >= 5:
+            logger.info(f"{drone_id}: Waiting for GUIDED mode...")
+            last_guided_log = current_time
         time.sleep(1)
 
     logger.info(f"{drone_id}: Waiting for vehicle to be ready to arm...")
+    last_armable_log = 0
     while not vehicle.is_armable:
         if stop_operations_event.is_set():
             logger.warning(f"{drone_id}: Stop signal received. Aborting arming process.")
             return
-        logger.info(f"{drone_id}: Vehicle not armable yet. Waiting...")
+        current_time = time.time()
+        if current_time - last_armable_log >= 5:
+            logger.info(f"{drone_id}: Vehicle not armable yet. Waiting...")
+            last_armable_log = current_time
         time.sleep(1)
 
     logger.info(f"{drone_id}: Arming...")
@@ -57,11 +65,15 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
         logger.error(f"{drone_id}: Arming failed: {e}")
         return
 
+    last_arming_log = 0
     while not vehicle.armed:
         if stop_operations_event.is_set():
             logger.warning(f"{drone_id}: Stop signal received. Aborting arming.")
             return
-        logger.info(f"{drone_id}: Waiting for arming...")
+        current_time = time.time()
+        if current_time - last_arming_log >= 5:
+            logger.info(f"{drone_id}: Waiting for arming...")
+            last_arming_log = current_time
         time.sleep(1)
 
     logger.info(f"{drone_id}: Taking off to {target_altitude} meters...")
@@ -77,7 +89,7 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
             return
 
         altitude = vehicle.location.global_relative_frame.alt
-        logger.info(f"{drone_id}: Altitude: {altitude:.2f} meters")
+        logger.debug(f"{drone_id}: Altitude: {altitude:.2f} meters")
 
         # Exit the loop when the target altitude is reached
         if altitude >= target_altitude * 0.95:
@@ -303,7 +315,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                     
                     move_to_positions(drones, triangle_positions, speed, target_altitude)
 
-                    logger.info(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    logger.debug(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
 
             
 
@@ -326,7 +338,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                     move_to_positions(drones, triangle_positions, speed, target_altitude)
 
-                    logger.info(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    logger.debug(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
 
                 elif swap_positions:
                     orbit_around_user = False
