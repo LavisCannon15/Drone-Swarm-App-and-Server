@@ -101,6 +101,20 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
         time.sleep(1)
 
 
+def _hold_position_until_stopped(vehicle, mode_mapping, drone_id):
+    """Ensure the vehicle stays in place until its velocity drops below a threshold."""
+    try:
+        while vehicle.velocity and any(abs(v) > 0.1 for v in vehicle.velocity):
+            if "BRAKE" not in mode_mapping:
+                try:
+                    send_ned_velocity(vehicle, 0, 0, 0)
+                except Exception as e:
+                    logger.warning(f"{drone_id}: Failed to send hold position command: {e}")
+            time.sleep(0.5)
+    except Exception as e:
+        logger.warning(f"{drone_id}: Error while holding position: {e}")
+
+
 def land(vehicle, drone_id):
     logger.info(f"{drone_id}: Stopping and landing…")
     mode_mapping = {}
@@ -118,13 +132,11 @@ def land(vehicle, drone_id):
         except Exception as e:
             logger.warning(f"{drone_id}: Failed to send hold position command: {e}")
 
-    while vehicle.velocity and any(abs(v) > 0.1 for v in vehicle.velocity):
-        if "BRAKE" not in mode_mapping:
-            try:
-                send_ned_velocity(vehicle, 0, 0, 0)
-            except Exception:
-                pass
-        time.sleep(0.5)
+    threading.Thread(
+        target=_hold_position_until_stopped,
+        args=(vehicle, mode_mapping, drone_id),
+        daemon=True,
+    ).start()
     vehicle.mode = VehicleMode("LAND")
 
 
