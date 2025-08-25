@@ -145,7 +145,15 @@ def wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operatio
 
 
 
-def determine_user_coordinates(current_lat, current_lon, user_speed, last_known_lat=None, last_known_lon=None, is_stationary=False, stationary_speed_threshold=0.5):
+def determine_user_coordinates(
+    current_lat,
+    current_lon,
+    user_speed,
+    last_known_lat=None,
+    last_known_lon=None,
+    is_stationary=False,
+    stationary_speed_threshold=0.5,
+):
     """
     Determine the user's coordinates based on movement.
 
@@ -168,6 +176,8 @@ def determine_user_coordinates(current_lat, current_lon, user_speed, last_known_
             logger.info("User is stationary. Caching last known GPS position.")
             is_stationary = True
     else:
+        if is_stationary:
+            logger.info("User resumed movement")
         is_stationary = False  # User is moving
 
     # Use last known position if stationary, otherwise live GPS data
@@ -257,8 +267,20 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             #print(f"🛰️ DEBUG: Orbit Distance → {revolve_offset_distance} meters")
 
             # Determine user movement and adjust drone positions
-            user_orbit_lat, user_orbit_lon, last_known_lat, last_known_lon, is_stationary = determine_user_coordinates(
-                current_lat, current_lon, kalman_user_speed, last_known_lat, last_known_lon, is_stationary
+            previous_is_stationary = is_stationary
+            (
+                user_orbit_lat,
+                user_orbit_lon,
+                last_known_lat,
+                last_known_lon,
+                is_stationary,
+            ) = determine_user_coordinates(
+                current_lat,
+                current_lon,
+                kalman_user_speed,
+                last_known_lat,
+                last_known_lon,
+                previous_is_stationary,
             )
 
             if is_stationary:
@@ -329,8 +351,6 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                 #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
                 move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
-
-                logger.info("User is moving")
 
             # Monitor drones for issues (battery, GPS, etc.)
             should_stop = monitor_drones(
