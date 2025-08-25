@@ -23,6 +23,7 @@ from position_calculations import (
 
 
 logger = logging.getLogger(__name__)
+logger.propagate = False
 
 
 def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):

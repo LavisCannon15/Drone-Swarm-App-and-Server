@@ -30,6 +30,9 @@ logging.basicConfig(
 )
 
 
+logger = logging.getLogger("server")
+
+
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
@@ -414,7 +417,7 @@ async def log_message(message):
     """
     Logs a message to the console and broadcasts it to all subscribed WebSocket clients.
     """
-    logging.info(message)
+    logger.info(message)
 
     message_data = json.dumps({"command": "log", "message": message})
 
