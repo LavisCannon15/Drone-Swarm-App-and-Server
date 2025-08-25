@@ -328,7 +328,7 @@ async def handle_start_operations(params):
         return
 
     if not landing_complete_event.is_set():
-        await log_message("Cannot start; landing in progress.")
+        await log_message("Cannot start; landing still in progress.")
         return
     landing_complete_event.clear()
 
@@ -408,7 +408,7 @@ async def handle_stop_operations():
         for (drone_id, _), result in zip(vehicle_items, results):
             if isinstance(result, Exception):
                 await log_message(f"Error landing vehicle {drone_id}: {result}")
-        landing_complete_event.set()
+    landing_complete_event.set()
 
 
 

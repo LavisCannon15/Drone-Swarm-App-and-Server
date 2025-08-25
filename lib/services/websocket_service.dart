@@ -345,16 +345,16 @@ class WebSocketService {
         String logMessage = message["message"];
         addServerLog(logMessage);
 
-        if (logMessage.toLowerCase().contains('landing complete')) {
-          _landingCompleteStreamController.add(null);
-        }
-
         if (kDebugMode) {
           print("📜 Server Log: $logMessage");
         }
         LogManager().addLog("📜 Server Log: $logMessage");
       } else if (message["command"] == "landing_complete") {
         _landingCompleteStreamController.add(null);
+        if (kDebugMode) {
+          print("🛬 Landing complete signal received");
+        }
+        LogManager().addLog("🛬 Landing complete signal received");
       } else {
 
         if (kDebugMode) {

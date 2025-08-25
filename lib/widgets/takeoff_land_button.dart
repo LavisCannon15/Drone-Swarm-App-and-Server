@@ -44,11 +44,11 @@ class _TakeOffLandButtonState extends State<TakeOffLandButton> {
       });
       LogManager().addLog("🔄 Button toggled: Now Land");
     } else {
-      await webSocketService.sendStopOperations();
       if (!mounted) return;
       setState(() {
         isLanding = true;
       });
+      await webSocketService.sendStopOperations();
       LogManager().addLog("🛬 Landing initiated...");
     }
   }
