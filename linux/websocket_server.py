@@ -64,13 +64,15 @@ async def send_telemetry():
             await asyncio.sleep(5)
             continue
         telemetry_data = []
-        for drone_id, vehicle in vehicles.items():
+        for drone_id, vehicle in list(vehicles.items()):
             try:
                 hb = getattr(vehicle, "last_heartbeat", 0)
                 if hb > 5:
                     if not heartbeat_stale.get(drone_id):
                         await log_message(f"⚠️ {drone_id} heartbeat lost ({hb:.1f}s)")
                         heartbeat_stale[drone_id] = True
+                    await handle_drone_disconnect(drone_id, vehicle)
+                    continue
                 else:
                     if heartbeat_stale.get(drone_id):
                         await log_message(f"✅ {drone_id} heartbeat restored")
@@ -116,6 +118,34 @@ async def send_telemetry():
                 server_log_clients.remove(client)  # Remove disconnected clients
 
         await asyncio.sleep(2)  # Adjust the interval as needed
+
+async def handle_drone_disconnect(drone_id, vehicle):
+    """Remove a disconnected drone and land remaining drones."""
+    global vehicles, stop_operations_event
+
+    # Always remove stale entries
+    vehicles.pop(drone_id, None)
+    heartbeat_stale.pop(drone_id, None)
+
+    # Prevent repeated handling once landing is in progress
+    if stop_operations_event.is_set():
+        return
+
+    await log_message(f"⚠️ {drone_id} disconnected. Landing remaining drones.")
+
+    disconnect_message = json.dumps({
+        "command": "drone_disconnected",
+        "drone_id": drone_id,
+    })
+
+    for client in list(server_log_clients):
+        try:
+            await client.send(disconnect_message)
+        except websockets.exceptions.ConnectionClosed:
+            server_log_clients.remove(client)
+
+    stop_operations_event.set()
+    asyncio.create_task(handle_stop_operations())
 
 async def handle_client(websocket, path):
     """
