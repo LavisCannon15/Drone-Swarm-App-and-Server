@@ -3,6 +3,7 @@ from dronekit import VehicleMode
 import time
 import threading
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from global_vars import stop_operations_event
 from geopy.distance import great_circle  # Ensure you have geopy installed
 from error_handler import monitor_drones, handle_drone_exceptions
@@ -378,12 +379,18 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
     finally:
         logger.info("Phase: landing start")
+        stop_operations_event.set()
         # Ensure that the drones land regardless of the reason for stopping
-        for drone in drones:
-            drone_id = drone.id if hasattr(drone, 'id') else 'Unknown'
-            try:
-                land(drone, drone_id)
-            except Exception as e:
-                logger.error(f"Error during landing of {drone_id}: {e}")
+        with ThreadPoolExecutor() as executor:
+            future_to_drone = {
+                executor.submit(land, drone, drone.id if hasattr(drone, 'id') else 'Unknown'):
+                (drone.id if hasattr(drone, 'id') else 'Unknown')
+                for drone in drones
+            }
+            for future, drone_id in future_to_drone.items():
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error(f"Error during landing of {drone_id}: {e}")
 
         logger.info("Phase: landing complete")
