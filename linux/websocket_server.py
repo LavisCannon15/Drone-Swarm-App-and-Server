@@ -383,9 +383,14 @@ async def handle_stop_operations():
 
     stop_operations_event.set()
 
-    if drone_thread and drone_thread.is_alive():
-        drone_thread.join()
+    # Attempt to clean up the operations thread without blocking this coroutine.
+    # Joining in an executor allows the event loop to continue immediately,
+    # while still ensuring that resources are released once the thread exits.
+    if drone_thread:
+        thread_to_join = drone_thread
         drone_thread = None
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, thread_to_join.join)
 
     if not landing_complete_event.is_set():
         loop = asyncio.get_running_loop()
