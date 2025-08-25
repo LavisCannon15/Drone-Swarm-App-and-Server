@@ -354,6 +354,17 @@ class WebSocketService {
           print("🛬 Landing complete signal received");
         }
         LogManager().addLog("🛬 Landing complete signal received");
+      } else if (message["command"] == "drone_disconnected") {
+        final droneId = message["drone_id"]?.toString() ?? "unknown";
+        telemetryData.remove(droneId);
+        _telemetryStreamController.add(null);
+        _landingCompleteStreamController.add(null);
+        final alert =
+            "⚠️ Drone $droneId disconnected. Operations halted.";
+        if (kDebugMode) {
+          print(alert);
+        }
+        LogManager().addLog(alert);
       } else {
 
         if (kDebugMode) {
