@@ -355,11 +355,16 @@ async def handle_stop_operations():
         drone_thread.join()
         drone_thread = None
 
-    for drone_id, vehicle in list(vehicles.items()):
-        try:
-            await asyncio.to_thread(land, vehicle, drone_id)
-        except Exception as e:
-            await log_message(f"Error landing vehicle {drone_id}: {e}")
+    loop = asyncio.get_running_loop()
+    vehicle_items = list(vehicles.items())
+    landing_tasks = [
+        loop.run_in_executor(None, land, vehicle, drone_id)
+        for drone_id, vehicle in vehicle_items
+    ]
+    results = await asyncio.gather(*landing_tasks, return_exceptions=True)
+    for (drone_id, _), result in zip(vehicle_items, results):
+        if isinstance(result, Exception):
+            await log_message(f"Error landing vehicle {drone_id}: {result}")
 
 
 
