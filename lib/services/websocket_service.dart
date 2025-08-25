@@ -38,9 +38,9 @@ class WebSocketService {
 
   // Store server logs (capped)
   final List<String> serverLogs = [];
-  final StreamController<List<String>> _serverLogStreamController =
+  final StreamController<String> _serverLogStreamController =
       StreamController.broadcast();
-  Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
+  Stream<String> get serverLogStream => _serverLogStreamController.stream;
   static const int _maxServerLogs = 500;
 
   // Landing completion stream
@@ -52,14 +52,13 @@ class WebSocketService {
   void addServerLog(String logMessage) {
     serverLogs.add(logMessage);
     if (serverLogs.length > _maxServerLogs) {
-      serverLogs.removeRange(0, serverLogs.length - _maxServerLogs);
+      serverLogs.removeAt(0);
     }
-    _serverLogStreamController.add(List.from(serverLogs));
+    _serverLogStreamController.add(logMessage);
   }
 
   void clearServerLogs() {
     serverLogs.clear();
-    _serverLogStreamController.add([]);
   }
 
   // Connect to WebSocket server

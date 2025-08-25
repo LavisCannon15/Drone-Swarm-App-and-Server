@@ -12,7 +12,7 @@ const ConsoleScreen({super.key});
 }
 
 class _ConsoleScreenState extends State<ConsoleScreen> {
-
+  final List<String> _serverLogs = List.from(WebSocketService().serverLogs);
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -64,16 +64,20 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
   Widget _buildServerConsole() {
     return Container(
       color: Colors.black, // ✅ Restore black background
-      child: StreamBuilder<List<String>>(
+      child: StreamBuilder<String>(
         stream: WebSocketService().serverLogStream,
-        initialData: WebSocketService().serverLogs,
         builder: (context, snapshot) {
-          final logs = snapshot.data ?? [];
+          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            _serverLogs.add(snapshot.data!);
+            if (_serverLogs.length > 500) {
+              _serverLogs.removeAt(0);
+            }
+          }
           return ListView.builder(
             padding: EdgeInsets.all(10),
-            itemCount: logs.length,
+            itemCount: _serverLogs.length,
             itemBuilder: (context, index) {
-              return _buildLogText(logs[index]);
+              return _buildLogText(_serverLogs[index]);
             },
           );
         },
@@ -99,8 +103,11 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
         tooltip: "Clear Logs",
         onPressed: () {
 
-          LogManager().clearLogs();
-          WebSocketService().clearServerLogs();
+          setState(() {
+            LogManager().clearLogs();
+            WebSocketService().clearServerLogs();
+            _serverLogs.clear();
+          });
 
           if (kDebugMode) {
             print("🗑️ Console logs cleared.");
