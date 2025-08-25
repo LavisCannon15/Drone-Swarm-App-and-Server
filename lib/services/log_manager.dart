@@ -27,9 +27,6 @@ class LogManager {
       _logs.removeRange(0, _logs.length - _maxLogs);
     }
     _logStreamController.add(List.from(_logs));
-
-    // Persist log entry to file asynchronously
-    unawaited(_writeLogToFile(logEntry));
   }
 
   void pauseLogging(bool shouldPause) {
@@ -65,18 +62,6 @@ class LogManager {
     }
     _logFile = file;
     return file;
-  }
-
-  Future<void> _writeLogToFile(String entry) async {
-    final file = await _getLogFile();
-    await file.writeAsString('$entry\n', mode: FileMode.append);
-
-    // Maintain a rolling file by trimming old entries beyond [_maxLogs]
-    final lines = await file.readAsLines();
-    if (lines.length > _maxLogs) {
-      final trimmed = lines.sublist(lines.length - _maxLogs);
-      await file.writeAsString(trimmed.join('\n') + '\n');
-    }
   }
 
 }
