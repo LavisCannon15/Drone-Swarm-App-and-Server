@@ -101,21 +101,33 @@ def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
 
 
 def land(vehicle, drone_id):
+    """Initiate landing without waiting for the vehicle to stop."""
     logger.info(f"{drone_id}: Stopping and landing…")
-    mode_mapping = {}
     try:
         mode_mapping = vehicle.mode_mapping()
     except Exception:
-        pass
+        mode_mapping = {}
 
     if "BRAKE" in mode_mapping:
         vehicle.mode = VehicleMode("BRAKE")
     else:
-        logger.info(f"{drone_id}: BRAKE mode not supported, holding position with zero velocity.")
+        logger.info(
+            f"{drone_id}: BRAKE mode not supported, holding position with zero velocity."
+        )
         try:
             send_ned_velocity(vehicle, 0, 0, 0)
         except Exception as e:
             logger.warning(f"{drone_id}: Failed to send hold position command: {e}")
+
+    vehicle.mode = VehicleMode("LAND")
+
+
+def monitor_landing(vehicle, drone_id):
+    """Monitor velocity until the drone has effectively stopped."""
+    try:
+        mode_mapping = vehicle.mode_mapping()
+    except Exception:
+        mode_mapping = {}
 
     while vehicle.velocity and any(abs(v) > 0.1 for v in vehicle.velocity):
         if "BRAKE" not in mode_mapping:
@@ -124,7 +136,6 @@ def land(vehicle, drone_id):
             except Exception:
                 pass
         time.sleep(0.5)
-    vehicle.mode = VehicleMode("LAND")
 
 
 def wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event):
@@ -380,14 +391,26 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     finally:
         logger.info("Phase: landing start")
         stop_operations_event.set()
-        # Ensure that the drones land regardless of the reason for stopping
+
         with ThreadPoolExecutor() as executor:
-            future_to_drone = {
-                executor.submit(land, drone, drone.id if hasattr(drone, 'id') else 'Unknown'):
-                (drone.id if hasattr(drone, 'id') else 'Unknown')
+            # Initiate landing for all drones concurrently
+            landing_futures = [
+                executor.submit(
+                    land, drone, drone.id if hasattr(drone, 'id') else 'Unknown'
+                )
+                for drone in drones
+            ]
+            for future in landing_futures:
+                future.result()
+
+            # Monitor landing progress concurrently
+            monitor_to_drone = {
+                executor.submit(
+                    monitor_landing, drone, drone.id if hasattr(drone, 'id') else 'Unknown'
+                ): (drone.id if hasattr(drone, 'id') else 'Unknown')
                 for drone in drones
             }
-            for future, drone_id in future_to_drone.items():
+            for future, drone_id in monitor_to_drone.items():
                 try:
                     future.result()
                 except Exception as e:

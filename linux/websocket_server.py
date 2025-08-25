@@ -8,7 +8,7 @@ import os
 import sys
 import argparse
 from dronekit import connect
-from drone_operations import operate_drones, land
+from drone_operations import operate_drones, land, monitor_landing
 from global_vars import stop_operations_event
 
 
@@ -375,11 +375,20 @@ async def handle_stop_operations():
 
     loop = asyncio.get_running_loop()
     vehicle_items = list(vehicles.items())
+
+    # Initiate landing for all drones concurrently
     landing_tasks = [
         loop.run_in_executor(None, land, vehicle, drone_id)
         for drone_id, vehicle in vehicle_items
     ]
-    results = await asyncio.gather(*landing_tasks, return_exceptions=True)
+    await asyncio.gather(*landing_tasks, return_exceptions=True)
+
+    # Monitor landing progress concurrently
+    monitor_tasks = [
+        loop.run_in_executor(None, monitor_landing, vehicle, drone_id)
+        for drone_id, vehicle in vehicle_items
+    ]
+    results = await asyncio.gather(*monitor_tasks, return_exceptions=True)
     for (drone_id, _), result in zip(vehicle_items, results):
         if isinstance(result, Exception):
             await log_message(f"Error landing vehicle {drone_id}: {result}")
