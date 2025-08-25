@@ -35,6 +35,7 @@ server_log_clients = set()  # Store connected clients for log streaming
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
 telemetry_task = None
 drone_thread = None
+landing_complete_event = threading.Event()
 heartbeat_stale = {}  # Track heartbeat health per drone
 
 
@@ -323,6 +324,7 @@ async def handle_start_operations(params):
     await log_message("🚀 Starting drone operations...")
 
     stop_operations_event.clear()
+    landing_complete_event.clear()
 
     # ✅ Extract parameters from WebSocket message
     takeoff_altitude = params.get("takeoff_altitude", 3.0)
@@ -347,11 +349,13 @@ async def handle_start_operations(params):
     # ✅ Only pass the list of `Vehicle` objects, NOT tuples
     drone_list = list(vehicles.values())
 
-    drone_thread = threading.Thread(
-        target=operate_drones,
-        args=(drone_list, takeoff_altitude, target_altitude, drone_command_data),
-        daemon=True,
-    )
+    def run_operations():
+        try:
+            operate_drones(drone_list, takeoff_altitude, target_altitude, drone_command_data)
+        finally:
+            landing_complete_event.set()
+
+    drone_thread = threading.Thread(target=run_operations, daemon=True)
     drone_thread.start()
 
 
@@ -373,16 +377,18 @@ async def handle_stop_operations():
         drone_thread.join()
         drone_thread = None
 
-    loop = asyncio.get_running_loop()
-    vehicle_items = list(vehicles.items())
-    landing_tasks = [
-        loop.run_in_executor(None, land, vehicle, drone_id)
-        for drone_id, vehicle in vehicle_items
-    ]
-    results = await asyncio.gather(*landing_tasks, return_exceptions=True)
-    for (drone_id, _), result in zip(vehicle_items, results):
-        if isinstance(result, Exception):
-            await log_message(f"Error landing vehicle {drone_id}: {result}")
+    if not landing_complete_event.is_set():
+        loop = asyncio.get_running_loop()
+        vehicle_items = list(vehicles.items())
+        landing_tasks = [
+            loop.run_in_executor(None, land, vehicle, drone_id)
+            for drone_id, vehicle in vehicle_items
+        ]
+        results = await asyncio.gather(*landing_tasks, return_exceptions=True)
+        for (drone_id, _), result in zip(vehicle_items, results):
+            if isinstance(result, Exception):
+                await log_message(f"Error landing vehicle {drone_id}: {result}")
+        landing_complete_event.set()
 
 
 
