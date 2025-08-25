@@ -43,6 +43,12 @@ class WebSocketService {
   Stream<List<String>> get serverLogStream => _serverLogStreamController.stream;
   static const int _maxServerLogs = 500;
 
+  // Landing completion stream
+  final StreamController<void> _landingCompleteStreamController =
+      StreamController.broadcast();
+  Stream<void> get landingCompleteStream =>
+      _landingCompleteStreamController.stream;
+
   void addServerLog(String logMessage) {
     serverLogs.add(logMessage);
     if (serverLogs.length > _maxServerLogs) {
@@ -339,10 +345,16 @@ class WebSocketService {
         String logMessage = message["message"];
         addServerLog(logMessage);
 
+        if (logMessage.toLowerCase().contains('landing complete')) {
+          _landingCompleteStreamController.add(null);
+        }
+
         if (kDebugMode) {
           print("📜 Server Log: $logMessage");
         }
         LogManager().addLog("📜 Server Log: $logMessage");
+      } else if (message["command"] == "landing_complete") {
+        _landingCompleteStreamController.add(null);
       } else {
 
         if (kDebugMode) {
@@ -376,6 +388,7 @@ class WebSocketService {
   void dispose() {
     _telemetryStreamController.close();
     _serverLogStreamController.close();
+    _landingCompleteStreamController.close();
     _connectionStatusController.close();
   }
 }
