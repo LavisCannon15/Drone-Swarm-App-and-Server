@@ -39,6 +39,7 @@ drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds 
 telemetry_task = None
 drone_thread = None
 landing_complete_event = threading.Event()
+landing_complete_event.set()
 heartbeat_stale = {}  # Track heartbeat health per drone
 
 
@@ -326,10 +327,14 @@ async def handle_start_operations(params):
         await log_message("🚨 No drones connected! Cannot start operations.")
         return
 
+    if not landing_complete_event.is_set():
+        await log_message("Cannot start; landing in progress.")
+        return
+    landing_complete_event.clear()
+
     await log_message("🚀 Starting drone operations...")
 
     stop_operations_event.clear()
-    landing_complete_event.clear()
 
     # Restart telemetry if it was previously stopped
     global telemetry_task
@@ -414,6 +419,13 @@ async def handle_stop_operations():
         except asyncio.CancelledError:
             pass
     telemetry_task = None
+
+    landing_message = json.dumps({"command": "landing_complete"})
+    for client in list(server_log_clients):
+        try:
+            await client.send(landing_message)
+        except websockets.exceptions.ConnectionClosed:
+            server_log_clients.remove(client)
 
     await log_message("🛬 Stop operations signal received! Landing all drones.")
 
