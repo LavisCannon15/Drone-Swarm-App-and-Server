@@ -255,10 +255,17 @@ class _DroneInfoBottomSheetState extends State<DroneInfoBottomSheet> {
 
   Widget _buildDataRow(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text("$label:", style: TextStyle(fontWeight: FontWeight.bold)),
-        Text(value),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
       ],
     );
   }
