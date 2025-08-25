@@ -141,6 +141,8 @@ async def handle_client(websocket, path):
                 await handle_start_operations(params)
             elif command == "stop_operations":
                 await handle_stop_operations()
+            elif command == "disconnect":
+                await handle_disconnect()
             elif command == "subscribe_logs":
                 server_log_clients.add(websocket)
                 await log_message("✅ Client subscribed to server logs.")
@@ -155,7 +157,7 @@ async def handle_client(websocket, path):
         # Only land drones if any are connected. Otherwise just clear state.
         if vehicles:
             await log_message("⚠️ Client disconnected! Landing all drones.")
-            await handle_stop_operations()  # ✅ Auto-land drones when client disconnects
+            await handle_disconnect()  # ✅ Auto-land drones and disconnect when client disconnects
         else:
             await log_message("⚠️ Client disconnected! No drones to land.")
             # Clear any lingering telemetry task
@@ -329,6 +331,11 @@ async def handle_start_operations(params):
     stop_operations_event.clear()
     landing_complete_event.clear()
 
+    # Restart telemetry if it was previously stopped
+    global telemetry_task
+    if not telemetry_task or telemetry_task.done():
+        telemetry_task = asyncio.create_task(send_telemetry())
+
     # ✅ Extract parameters from WebSocket message
     takeoff_altitude = params.get("takeoff_altitude", 3.0)
     initial_position_speed = params.get("initial_position_speed", 3.0)
@@ -403,6 +410,15 @@ async def handle_stop_operations():
             pass
     telemetry_task = None
 
+    await log_message("🛬 Stop operations signal received! Landing all drones.")
+
+
+async def handle_disconnect():
+    """Explicitly close all vehicle connections and clear state."""
+    global vehicles
+
+    await handle_stop_operations()
+
     for vehicle in list(vehicles.values()):
         try:
             vehicle.close()
@@ -410,7 +426,7 @@ async def handle_stop_operations():
             await log_message(f"Error closing vehicle {getattr(vehicle, 'id', 'unknown')}: {e}")
     vehicles.clear()
 
-    await log_message("🛬 Stop operations signal received! Landing all drones.")
+    await log_message("🔌 All drones disconnected.")
 
 
 async def log_message(message):
