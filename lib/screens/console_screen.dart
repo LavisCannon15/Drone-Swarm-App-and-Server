@@ -114,8 +114,11 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
         icon: Icon(Icons.share),
         tooltip: "Export Logs",
         onPressed: () async {
-          final file = await LogManager().getLogFile();
+          final logManager = LogManager();
+          final file = await logManager.getLogFile();
+          await file.writeAsString(logManager.logs.join('\n'));
           await Share.shareXFiles([XFile(file.path)], text: 'Application Logs');
+          logManager.clearLogs();
         },
       ),
 
