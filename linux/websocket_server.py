@@ -4,12 +4,28 @@ import json
 import logging
 import threading
 import functools
+import os
+import sys
+import argparse
 from dronekit import connect
 from drone_operations import operate_drones, land
 from global_vars import stop_operations_event
 
+
+def _resolve_log_level() -> int:
+    """Determine the logging level from CLI args or environment."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--log-level", dest="log_level")
+    args, remaining = parser.parse_known_args()
+    # Remove parsed args so other modules can handle their own CLI arguments
+    sys.argv = [sys.argv[0]] + remaining
+
+    level_name = args.log_level or os.getenv("LOG_LEVEL", "INFO")
+    return getattr(logging, level_name.upper(), logging.INFO)
+
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=_resolve_log_level(),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
