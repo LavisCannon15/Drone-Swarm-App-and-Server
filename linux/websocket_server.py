@@ -191,6 +191,18 @@ async def handle_connect_command(websocket, params):
                 timeout=10,
             )
             vehicle.id = drone_id
+
+            def status_text_listener(self, name, message):
+                text = getattr(message, "text", "")
+                if isinstance(text, bytes):
+                    text = text.decode("utf-8", errors="ignore")
+                text = text.rstrip("\x00")
+                asyncio.run_coroutine_threadsafe(
+                    log_message(f"{self.id}: {text}"), loop
+                )
+
+            vehicle.add_message_listener("STATUSTEXT", status_text_listener)
+
             vehicles[drone_id] = vehicle
             connected.append(drone_id)
             await log_message(f"{drone_id} connected successfully at {drone_ip}.")
@@ -410,6 +422,8 @@ async def main():
     handler = WebsocketLogHandler(loop)
     logging.getLogger("drone_operations").addHandler(handler)
     logging.getLogger("error_handler").addHandler(handler)
+    logging.getLogger("autopilot").addHandler(handler)
+    logging.getLogger("dronekit").addHandler(handler)
 
     server = await websockets.serve(handle_client, "0.0.0.0", 5000)
     await log_message("WebSocket server running at ws://0.0.0.0:5000")
