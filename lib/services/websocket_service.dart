@@ -43,6 +43,13 @@ class WebSocketService {
   Stream<String> get serverLogStream => _serverLogStreamController.stream;
   static const int _maxServerLogs = 500;
 
+  // Store drone status text per drone
+  final Map<String, List<String>> droneStatus = {};
+  final StreamController<void> _droneStatusStreamController =
+      StreamController.broadcast();
+  Stream<void> get droneStatusStream => _droneStatusStreamController.stream;
+  static const int _maxStatusLogs = 200;
+
   // Landing completion stream
   final StreamController<void> _landingCompleteStreamController =
       StreamController.broadcast();
@@ -59,6 +66,20 @@ class WebSocketService {
 
   void clearServerLogs() {
     serverLogs.clear();
+  }
+
+  void addDroneStatus(String droneId, String message) {
+    final logs = droneStatus.putIfAbsent(droneId, () => []);
+    logs.add(message);
+    if (logs.length > _maxStatusLogs) {
+      logs.removeAt(0);
+    }
+    _droneStatusStreamController.add(null);
+  }
+
+  void clearDroneStatus(String droneId) {
+    droneStatus[droneId]?.clear();
+    _droneStatusStreamController.add(null);
   }
 
   // Connect to WebSocket server
@@ -101,8 +122,9 @@ class WebSocketService {
         },
       );
 
-      // Subscribe to logs
+      // Subscribe to logs and drone status text
       _webSocket.sink.add(jsonEncode({"command": "subscribe_logs"}));
+      _webSocket.sink.add(jsonEncode({"command": "subscribe_statustext"}));
 
       return true;
     } catch (e) {
@@ -365,6 +387,10 @@ class WebSocketService {
           print(alert);
         }
         LogManager().addLog(alert);
+      } else if (message["command"] == "statustext") {
+        final droneId = message["drone_id"]?.toString() ?? "unknown";
+        final text = message["message"]?.toString() ?? "";
+        addDroneStatus(droneId, text);
       } else {
 
         if (kDebugMode) {
@@ -385,6 +411,7 @@ class WebSocketService {
     _lastUrl = null;
     _isReconnecting = false;
     if (isConnected) {
+      _webSocket.sink.add(jsonEncode({"command": "unsubscribe_statustext"}));
       await _webSocket.sink.close();
       isConnected = false;
       _connectionStatusController.add(false);
@@ -400,6 +427,7 @@ class WebSocketService {
     _serverLogStreamController.close();
     _landingCompleteStreamController.close();
     _connectionStatusController.close();
+    _droneStatusStreamController.close();
   }
 }
 
