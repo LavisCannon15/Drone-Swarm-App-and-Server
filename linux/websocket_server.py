@@ -35,6 +35,7 @@ logger = logging.getLogger("server")
 
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
+status_text_clients = set()  # Store clients for drone status text
 drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
 telemetry_task = None
 drone_thread = None
@@ -177,6 +178,12 @@ async def handle_client(websocket, path):
             elif command == "subscribe_logs":
                 server_log_clients.add(websocket)
                 await log_message("✅ Client subscribed to server logs.")
+            elif command == "subscribe_statustext":
+                status_text_clients.add(websocket)
+                await log_message("✅ Client subscribed to status text.")
+            elif command == "unsubscribe_statustext":
+                status_text_clients.discard(websocket)
+                await log_message("✅ Client unsubscribed from status text.")
             else:
                 await log_message(f"⚠️ Unknown command: {command}")
                 await websocket.send(json.dumps({
@@ -186,6 +193,8 @@ async def handle_client(websocket, path):
 
     except websockets.exceptions.ConnectionClosed:
         # Only land drones if any are connected. Otherwise just clear state.
+        server_log_clients.discard(websocket)
+        status_text_clients.discard(websocket)
         if vehicles:
             await log_message("⚠️ Client disconnected! Landing all drones.")
             await handle_disconnect()  # ✅ Auto-land drones and disconnect when client disconnects
@@ -251,7 +260,7 @@ async def handle_connect_command(websocket, params):
                     text = text.decode("utf-8", errors="ignore")
                 text = text.rstrip("\x00")
                 asyncio.run_coroutine_threadsafe(
-                    log_message(f"{self.id}: {text}"), loop
+                    broadcast_status_text(self.id, text), loop
                 )
 
             vehicle.add_message_listener("STATUSTEXT", status_text_listener)
@@ -496,6 +505,18 @@ async def log_message(message):
     for client in disconnected_clients:
         server_log_clients.remove(client)
 
+
+async def broadcast_status_text(drone_id: str, message: str):
+    """Broadcast drone status text to subscribed clients without logging."""
+    data = json.dumps({"command": "statustext", "drone_id": drone_id, "message": message})
+    disconnected = set()
+    for client in status_text_clients:
+        try:
+            await client.send(data)
+        except websockets.exceptions.ConnectionClosed:
+            disconnected.add(client)
+    for client in disconnected:
+        status_text_clients.remove(client)
 
 async def main():
     """
