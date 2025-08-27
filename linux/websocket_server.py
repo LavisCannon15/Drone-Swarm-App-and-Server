@@ -52,6 +52,14 @@ class WebsocketLogHandler(logging.Handler):
         self.loop = loop
 
     def emit(self, record):
+        # Ignore noisy STATUSTEXT messages from the dronekit logger
+        try:
+            if record.name == "dronekit" and "STATUSTEXT" in str(record.msg):
+                return
+        except Exception:
+            # If anything goes wrong in filtering, fall back to logging
+            pass
+
         msg = self.format(record)
         asyncio.run_coroutine_threadsafe(log_message(msg), self.loop)
 
