@@ -61,7 +61,7 @@ class WebsocketLogHandler(logging.Handler):
             pass
 
         msg = self.format(record)
-        asyncio.run_coroutine_threadsafe(log_message(msg), self.loop)
+        asyncio.run_coroutine_threadsafe(log_message(msg, log_to_console=False), self.loop)
 
 async def send_telemetry():
     """
@@ -493,11 +493,16 @@ async def handle_disconnect():
     await log_message("🔌 All drones disconnected.")
 
 
-async def log_message(message):
+async def log_message(message, log_to_console: bool = True):
     """
-    Logs a message to the console and broadcasts it to all subscribed WebSocket clients.
+    Logs a message and broadcasts it to all subscribed WebSocket clients.
+
+    Args:
+        message: The log message to send.
+        log_to_console: Whether to also output the message to the server console.
     """
-    logger.info(message)
+    if log_to_console:
+        logger.info(message)
 
     message_data = json.dumps({"command": "log", "message": message})
 
@@ -536,6 +541,9 @@ async def main():
     logging.getLogger("error_handler").addHandler(handler)
     logging.getLogger("autopilot").addHandler(handler)
     logging.getLogger("dronekit").addHandler(handler)
+
+    for name in ("autopilot", "dronekit"):
+        logging.getLogger(name).propagate = False
 
     server = await websockets.serve(handle_client, "0.0.0.0", 5000)
     await log_message("WebSocket server running at ws://0.0.0.0:5000")
