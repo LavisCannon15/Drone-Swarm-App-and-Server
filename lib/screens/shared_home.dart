@@ -17,7 +17,7 @@ import '../widgets/movement_toggle_button.dart';
 import 'settings_screen.dart';
 import 'drone_management_screen.dart';
 import 'console_screen.dart';
-import 'drone_status_screen.dart';
+import 'drone_messages_screen.dart';
 import '../services/websocket_service.dart';
 import '../services/gps_service.dart';
 import '../services/simulated_gps_service.dart';
@@ -137,13 +137,13 @@ class _SharedHomeState extends State<SharedHome> {
             ),
             ListTile(
               leading: Icon(Icons.message),
-              title: Text("Drone Status"),
+              title: Text("Drone Messages"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const DroneStatusScreen()),
+                      builder: (context) => const DroneMessagesScreen()),
                 );
               },
             ),
