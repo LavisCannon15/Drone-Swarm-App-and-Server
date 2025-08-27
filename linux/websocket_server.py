@@ -539,11 +539,12 @@ async def main():
     handler = WebsocketLogHandler(loop)
     logging.getLogger("drone_operations").addHandler(handler)
     logging.getLogger("error_handler").addHandler(handler)
-    logging.getLogger("autopilot").addHandler(handler)
-    logging.getLogger("dronekit").addHandler(handler)
 
     for name in ("autopilot", "dronekit"):
-        logging.getLogger(name).propagate = False
+        log = logging.getLogger(name)
+        log.handlers.clear()         # remove their console handlers
+        log.addHandler(handler)      # forward logs to WebSocket clients
+        log.propagate = False        # stop bubbling to root/console
 
     server = await websockets.serve(handle_client, "0.0.0.0", 5000)
     await log_message("WebSocket server running at ws://0.0.0.0:5000")
