@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/websocket_service.dart';
 
-class DroneStatusScreen extends StatefulWidget {
-  const DroneStatusScreen({super.key});
+class DroneMessagesScreen extends StatefulWidget {
+  const DroneMessagesScreen({super.key});
 
   @override
-  State<DroneStatusScreen> createState() => _DroneStatusScreenState();
+  State<DroneMessagesScreen> createState() => _DroneMessagesScreenState();
 }
 
-class _DroneStatusScreenState extends State<DroneStatusScreen> {
+class _DroneMessagesScreenState extends State<DroneMessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final service = WebSocketService();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drone Status'),
+        title: const Text('Drone Messages'),
       ),
       body: Container(
         color: Colors.black,
@@ -25,7 +25,7 @@ class _DroneStatusScreenState extends State<DroneStatusScreen> {
             if (status.isEmpty) {
               return const Center(
                 child: Text(
-                  'No status messages',
+                  'No messages',
                   style: TextStyle(color: Colors.white),
                 ),
               );

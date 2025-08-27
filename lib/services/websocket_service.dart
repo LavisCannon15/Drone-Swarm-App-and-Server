@@ -363,13 +363,18 @@ class WebSocketService {
               MapEntry(drone["drone_id"], Map<String, dynamic>.from(drone))));
         _telemetryStreamController.add(null); // notify listeners
       } else if (message["command"] == "log") {
-        String logMessage = message["message"];
-        addServerLog(logMessage);
-
-        if (kDebugMode) {
-          print("📜 Server Log: $logMessage");
+        final logMessage = message["message"]?.toString() ?? "";
+        final droneId = message["drone_id"]?.toString();
+        final prefixMatch =
+            RegExp(r'^Drone\s+(\S+):\s*(.*)').firstMatch(logMessage);
+        if (droneId != null && droneId.isNotEmpty) {
+          addDroneStatus(droneId, logMessage);
+        } else if (prefixMatch != null) {
+          addDroneStatus(prefixMatch.group(1)!, prefixMatch.group(2)!);
+        } else {
+          addServerLog(logMessage);
+          LogManager().addLog("📜 Server Log: $logMessage");
         }
-        LogManager().addLog("📜 Server Log: $logMessage");
       } else if (message["command"] == "landing_complete") {
         _landingCompleteStreamController.add(null);
         if (kDebugMode) {
