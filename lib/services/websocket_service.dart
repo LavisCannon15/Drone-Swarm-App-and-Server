@@ -300,6 +300,24 @@ class WebSocketService {
     LogManager().addLog("🛬 Sent Stop Operations Command");
   }
 
+  // Send emergency force disarm command
+  Future<void> sendForceDisarm() async {
+    if (!isConnected) {
+      if (kDebugMode) {
+        print("⚠️ WebSocket is not connected.");
+      }
+      LogManager().addLog("⚠️ WebSocket is not connected.");
+      return;
+    }
+
+    sendCommand("force_disarm", {});
+
+    if (kDebugMode) {
+      print("🔚 Sent Force Disarm Command");
+    }
+    LogManager().addLog("🔚 Sent Force Disarm Command");
+  }
+
   // Send command to WebSocket server
   Future<void> sendCommand(String command, Map<String, dynamic> params) async {
     if (!isConnected) {
