@@ -300,6 +300,25 @@ class WebSocketService {
     LogManager().addLog("🛬 Sent Stop Operations Command");
   }
 
+  // Send emergency force disarm command
+  Future<void> sendForceDisarm() async {
+    if (!isConnected) {
+      if (kDebugMode) {
+        print("⚠️ WebSocket is not connected.");
+      }
+      LogManager().addLog("⚠️ WebSocket is not connected.");
+      return;
+    }
+
+    sendCommand("force_disarm", {});
+    _landingCompleteStreamController.add(null);
+
+    if (kDebugMode) {
+      print("🔚 Sent Force Disarm Command");
+    }
+    LogManager().addLog("🔚 Sent Force Disarm Command");
+  }
+
   // Send command to WebSocket server
   Future<void> sendCommand(String command, Map<String, dynamic> params) async {
     if (!isConnected) {
@@ -381,6 +400,12 @@ class WebSocketService {
           print("🛬 Landing complete signal received");
         }
         LogManager().addLog("🛬 Landing complete signal received");
+      } else if (message["command"] == "force_disarm_ack") {
+        _landingCompleteStreamController.add(null);
+        if (kDebugMode) {
+          print("🛑 Force disarm acknowledged");
+        }
+        LogManager().addLog("🛑 Force disarm acknowledged");
       } else if (message["command"] == "drone_disconnected") {
         final droneId = message["drone_id"]?.toString() ?? "unknown";
         telemetryData.remove(droneId);

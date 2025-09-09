@@ -9,6 +9,7 @@ import '../widgets/telemetry_widget.dart';
 import '../widgets/mode_selector.dart';
 import '../widgets/connect_button.dart';
 import '../widgets/takeoff_land_button.dart';
+import '../widgets/kill_switch_button.dart';
 import '../widgets/recenter_button.dart';
 import '../widgets/drone_info_bottom_sheet.dart';
 import '../widgets/xy_graph_widget.dart';
@@ -230,6 +231,11 @@ class _SharedHomeState extends State<SharedHome> {
                 const ConnectButton(),
               ],
             ),
+          ),
+          Positioned(
+            top: 120,
+            right: 20,
+            child: const KillSwitchButton(),
           ),
           Positioned(
             bottom: 160,
