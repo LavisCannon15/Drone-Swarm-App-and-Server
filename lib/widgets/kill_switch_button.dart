@@ -43,7 +43,14 @@ class KillSwitchButton extends StatelessWidget {
           padding: EdgeInsets.zero,
         ),
         onPressed: () => _triggerKillSwitch(context),
-        child: const Icon(Icons.stop, color: Colors.white, size: 36),
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Emergency Stop',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
