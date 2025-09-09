@@ -46,7 +46,8 @@ class KillSwitchButton extends StatelessWidget {
         child: const FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            'Emergency Stop',
+            'Emergency\nStop',
+            maxLines: 2,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
