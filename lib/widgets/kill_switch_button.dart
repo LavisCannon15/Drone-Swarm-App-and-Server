@@ -33,10 +33,18 @@ class KillSwitchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-      onPressed: () => _triggerKillSwitch(context),
-      child: const Text('Emergency Stop'),
+    return SizedBox(
+      width: 70,
+      height: 70,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+        ),
+        onPressed: () => _triggerKillSwitch(context),
+        child: const Icon(Icons.stop, color: Colors.white, size: 36),
+      ),
     );
   }
 }

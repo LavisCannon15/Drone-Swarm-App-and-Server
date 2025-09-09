@@ -232,10 +232,12 @@ class _SharedHomeState extends State<SharedHome> {
             ),
           ),
 
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: const KillSwitchButton(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 120),
+              child: const KillSwitchButton(),
+            ),
           ),
           Positioned(
             bottom: 160,
