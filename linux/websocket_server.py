@@ -10,6 +10,7 @@ import argparse
 from dronekit import connect
 from drone_operations import operate_drones, land
 from global_vars import stop_operations_event
+from pymavlink import mavutil
 
 
 def _resolve_log_level() -> int:
@@ -183,6 +184,8 @@ async def handle_client(websocket, path):
                 await handle_stop_operations()
             elif command == "disconnect":
                 await handle_disconnect()
+            elif command == "force_disarm":
+                await handle_force_disarm()
             elif command == "subscribe_logs":
                 server_log_clients.add(websocket)
                 await log_message("✅ Client subscribed to server logs.")
@@ -475,6 +478,47 @@ async def handle_stop_operations():
             server_log_clients.remove(client)
 
     await log_message("🛬 Stop operations signal received! Landing all drones.")
+
+
+async def handle_force_disarm():
+    """Immediately disarm all drones without landing."""
+    global stop_operations_event, landing_complete_event, drone_thread
+
+    stop_operations_event.set()
+    landing_complete_event.set()
+
+    if drone_thread:
+        thread_to_join = drone_thread
+        drone_thread = None
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, thread_to_join.join)
+
+    for drone_id, vehicle in list(vehicles.items()):
+        try:
+            msg = vehicle.message_factory.command_long_encode(
+                0,
+                0,
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0,
+                0,
+                21196,
+                0,
+                0,
+                0,
+                0,
+                0,
+            )
+            vehicle._master.mav.send(msg)
+            await log_message(f"✋ Force disarm sent to {drone_id}")
+        except Exception as e:
+            await log_message(f"❌ Failed to force disarm {drone_id}: {e}")
+
+    ack_message = json.dumps({"command": "force_disarm_ack"})
+    for client in list(server_log_clients):
+        try:
+            await client.send(ack_message)
+        except websockets.exceptions.ConnectionClosed:
+            server_log_clients.remove(client)
 
 
 async def handle_disconnect():
