@@ -15,6 +15,7 @@ class _TakeOffLandButtonState extends State<TakeOffLandButton> {
   bool isTakeOff = true;
   bool isLanding = false;
   StreamSubscription? _landingSub;
+  StreamSubscription? _emergencySub;
 
   @override
   void initState() {
@@ -27,11 +28,21 @@ class _TakeOffLandButtonState extends State<TakeOffLandButton> {
       });
       LogManager().addLog("🔄 Button toggled: Now Take Off");
     });
+
+    _emergencySub = webSocketService.emergencyStopStream.listen((_) {
+      if (!mounted) return;
+      setState(() {
+        isTakeOff = true;
+        isLanding = false;
+      });
+      LogManager().addLog("🛑 Emergency stop: Button reset to Take Off");
+    });
   }
 
   @override
   void dispose() {
     _landingSub?.cancel();
+    _emergencySub?.cancel();
     super.dispose();
   }
 

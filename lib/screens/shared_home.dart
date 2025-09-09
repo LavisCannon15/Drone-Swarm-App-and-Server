@@ -221,18 +221,21 @@ class _SharedHomeState extends State<SharedHome> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ModeSelector(
-                    onModeSelected: (mode) {
+                ModeSelector(onModeSelected: (mode) {
                   LogManager().addLog('Mode Selected: $mode');
                 }),
                 SizedBox(height: 20),
                 const TakeOffLandButton(),
                 SizedBox(height: 20),
-                const KillSwitchButton(),
-                SizedBox(height: 20),
                 const ConnectButton(),
               ],
             ),
+          ),
+
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: const KillSwitchButton(),
           ),
           Positioned(
             bottom: 160,

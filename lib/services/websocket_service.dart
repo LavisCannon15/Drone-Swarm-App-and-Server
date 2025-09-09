@@ -56,6 +56,12 @@ class WebSocketService {
   Stream<void> get landingCompleteStream =>
       _landingCompleteStreamController.stream;
 
+  // Emergency stop stream
+  final StreamController<void> _emergencyStopStreamController =
+      StreamController.broadcast();
+  Stream<void> get emergencyStopStream =>
+      _emergencyStopStreamController.stream;
+
   void addServerLog(String logMessage) {
     serverLogs.add(logMessage);
     if (serverLogs.length > _maxServerLogs) {
@@ -312,6 +318,9 @@ class WebSocketService {
 
     sendCommand("force_disarm", {});
 
+    // Notify listeners that an emergency stop was triggered
+    _emergencyStopStreamController.add(null);
+
     if (kDebugMode) {
       print("🔚 Sent Force Disarm Command");
     }
@@ -451,6 +460,7 @@ class WebSocketService {
     _landingCompleteStreamController.close();
     _connectionStatusController.close();
     _droneStatusStreamController.close();
+    _emergencyStopStreamController.close();
   }
 }
 
