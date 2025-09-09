@@ -2,7 +2,7 @@
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 import time
 
-CONNECTION_STRING = "REPLACE_WITH_YOUR_CONNECTION_STRING"
+CONNECTION_STRING = "127.0.0.1:14550"
 
 def arm_and_takeoff(target_altitude: float) -> None:
     """Arm the vehicle and fly to target_altitude meters."""
@@ -49,4 +49,4 @@ def arm_and_takeoff(target_altitude: float) -> None:
         print("Connection closed.")
 
 if __name__ == "__main__":
-    arm_and_takeoff(5)   # Example: take off to 5 meters
+    arm_and_takeoff(2)   # Example: take off to 5 meters
