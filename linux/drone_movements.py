@@ -5,7 +5,7 @@ from dronekit import LocationGlobalRelative
 from pymavlink import mavutil
 
 logger = logging.getLogger(__name__)
-
+"""
 def move_to_positions(drones, triangle_positions,kalman_user_speed, altitude):
     for drone, target_position in zip(drones, triangle_positions):
         drone_id = drone.id if hasattr(drone, 'id') else 'Unknown'
@@ -16,7 +16,7 @@ def move_to_positions(drones, triangle_positions,kalman_user_speed, altitude):
         drone.simple_goto(LocationGlobalRelative(target_position[0], target_position[1], altitude),kalman_user_speed)
 
         logger.info(f"{drone_id}: Speed {drone.airspeed:.2f} m/s (Set Speed: {kalman_user_speed:.2f} m/s)")
-
+"""
 
 def move_to_initial_positions(drones, triangle_positions, kalman_user_speed):
     for drone, target_position in zip(drones, triangle_positions):
@@ -30,10 +30,68 @@ def move_to_initial_positions(drones, triangle_positions, kalman_user_speed):
 
         logger.info(f"{drone_id}: Moving to {target_position} at altitude {current_altitude:.2f} m "
                     f"with speed {kalman_user_speed:.2f} m/s.")
+        
+
+
+def set_groundspeed(vehicle, speed_mps):
+    """
+    Set target *groundspeed* (m/s) for the nav controller.
+    param1=1 => groundspeed, param2 => speed (m/s), param3=-1 keep current throttle.
+    """
+    msg = vehicle.message_factory.command_long_encode(
+        0, 0,
+        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,
+        0,
+        1, float(speed_mps), -1, 0, 0, 0, 0
+    )
+    vehicle.send_mavlink(msg)
+
+def construct_position_target_message(vehicle, location):
+    # Use position-only GLOBAL_INT (lat/lon/alt). Vel/accel/yaw ignored.
+    lat = location.lat
+    lon = location.lon
+    alt = location.alt
+
+    msg = vehicle.message_factory.set_position_target_global_int_encode(
+        0,  # time_boot_ms
+        0, 0,
+        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        0b0000111111111000,             # use PX/PY/PZ only
+        int(lat * 1e7),                 # lat_int (deg * 1e7)
+        int(lon * 1e7),                 # lon_int (deg * 1e7)
+        float(alt),                     # relative altitude (m)
+        0, 0, 0,                        # Vx, Vy, Vz (ignored)
+        0, 0, 0,                        # Ax, Ay, Az (ignored)
+        0, 0                            # yaw, yaw_rate (ignored)
+    )
+    return msg
+
+def move_to_positions(drones, triangle_positions, kalman_user_speed, altitude):
+    for drone, target_position in zip(drones, triangle_positions):
+        drone_id = getattr(drone, "id", "Unknown")
+
+        # 1) set desired groundspeed (send every tick as requested)
+        set_groundspeed(drone, kalman_user_speed)
+
+        # 2) stream latest position-only target
+        target_location = LocationGlobalRelative(target_position[0], target_position[1], altitude)
+        target_msg = construct_position_target_message(drone, target_location)
+        drone.send_mavlink(target_msg)
+        drone.flush()  # push immediately
+
+        # log (note: vehicle.groundspeed is an estimate and may lag the set value)
+        try:
+            gs = getattr(drone, "groundspeed", float("nan"))
+            logger.info(f"{drone_id}: Target {target_position} | GS {gs:.2f} m/s (Set {kalman_user_speed:.2f})")
+        except Exception:
+            logger.info(f"{drone_id}: Target {target_position} | Set GS {kalman_user_speed:.2f} m/s")
+
+        # fixed ~10 Hz
+        #time.sleep(0.1)
 
 
 """
-Controls drone via mavlink message
+Controls drone via mavlink message. just sends lat lon and alt, no speed
 def move_to_positions(drones, triangle_positions, altitude):
     for drone, target_position in zip(drones, triangle_positions):
         drone_id = drone.id if hasattr(drone, 'id') else 'Unknown'
