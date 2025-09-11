@@ -245,7 +245,7 @@ class WebSocketService {
         prefs.getString('initialPositionSpeed') ?? "3";
     String targetAltitude = prefs.getString('targetAltitude') ?? "1";
     String offsetDistance = prefs.getString('offsetDistance') ?? "4";
-    String revolveSpeed = prefs.getString('revolveSpeed') ?? "3";
+    String revolveSpeed = prefs.getString('revolveSpeed') ?? "2";
     String revolveOffsetDistance =
         prefs.getString('revolveOffsetDistance') ?? "4";
     String swapPositionSpeed = prefs.getString('swapPositionSpeed') ?? "1";
@@ -272,7 +272,7 @@ class WebSocketService {
           _parseParam(initialPositionSpeed, 3.0, 'initial_position_speed'),
       "target_altitude": _parseParam(targetAltitude, 1.0, 'target_altitude'),
       "offset_distance": _parseParam(offsetDistance, 4.0, 'offset_distance'),
-      "revolve_speed": _parseParam(revolveSpeed, 3.0, 'revolve_speed'),
+      "revolve_speed": _parseParam(revolveSpeed, 2.0, 'revolve_speed'),
       "revolve_offset_distance":
           _parseParam(revolveOffsetDistance, 4.0, 'revolve_offset_distance'),
       "swap_position_speed":
