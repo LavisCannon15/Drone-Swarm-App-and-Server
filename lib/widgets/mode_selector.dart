@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/log_manager.dart';
+import '../services/websocket_service.dart';
+import '../services/gps_service.dart';
+import '../services/simulated_gps_service.dart';
 
 class ModeSelector extends StatefulWidget {
   final Function(String) onModeSelected;
@@ -52,6 +55,16 @@ class _ModeSelectorState extends State<ModeSelector> {
           // ✅ Save selected mode to SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('selectedMode', mode);
+
+          await WebSocketService().sendCommand('mode_update', {
+            'orbit_around_user': mode == 'Orbit',
+            'swap_positions': mode == 'Swap Positions',
+            'rotate_triangle_formation': mode == 'Rotate Triangle',
+          });
+
+          // Update cached values so GPS updates reflect the new mode
+          await GPSService().refreshSettings();
+          await SimulatedGPSService().refreshSettings();
 
           LogManager().addLog("🎛️ Mode changed to: $mode");
         }
