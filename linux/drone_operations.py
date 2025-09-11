@@ -29,6 +29,15 @@ from position_calculations import (
 logger = logging.getLogger(__name__)
 logger.propagate = False
 
+# ``websocket_data_stream`` is a shared dictionary between the WebSocket
+# server and this module.  Fields such as ``latitude``, ``longitude`` and
+# other telemetry values are owned by the WebSocket server thread and are
+# read-only here.  Mode flags (``orbit_around_user``, ``swap_positions`` and
+# ``rotate_triangle_formation``) may be cleared by this module when an
+# operation finishes.  Any writes to these flags must hold
+# ``websocket_lock`` to avoid concurrent updates.
+websocket_lock = threading.Lock()
+
 
 def arm_and_takeoff(vehicle, target_altitude, drone_id, stop_operations_event):
     """Arm the vehicle and take off, relying on ArduPilot for state checks."""
@@ -220,6 +229,17 @@ def determine_user_coordinates(
 
 
 def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_stream):
+    """
+    Coordinate drone movements based on a shared ``websocket_data_stream``.
+
+    The data stream is a dictionary updated by the WebSocket server thread and
+    read by this function.  Telemetry fields (``latitude``, ``longitude``,
+    ``speed`` and related distance/speed parameters) are written by the server
+    and treated as read-only here.  Mode flags (``orbit_around_user``,
+    ``swap_positions`` and ``rotate_triangle_formation``) may be cleared by
+    this function when their operations complete.  All writes to those flags are
+    protected by ``websocket_lock``.
+    """
     global stop_operations_event  # Use the global stop flag
 
     # Arm and take off each drone with staggered altitudes
@@ -317,6 +337,9 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 if orbit_around_user:
                     swap_positions = False
                     rotate_triangle_formation = False
+                    with websocket_lock:
+                        websocket_data_stream["swap_positions"] = False
+                        websocket_data_stream["rotate_triangle_formation"] = False
 
                     current_time = time.time()
                     elapsed_time = current_time - previous_time
@@ -347,6 +370,9 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 elif rotate_triangle_formation:
                     orbit_around_user = False
                     swap_positions = False
+                    with websocket_lock:
+                        websocket_data_stream["orbit_around_user"] = False
+                        websocket_data_stream["swap_positions"] = False
 
                     current_time = time.time()
                     elapsed_time = current_time - previous_time
@@ -376,6 +402,9 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 elif swap_positions:
                     orbit_around_user = False
                     rotate_triangle_formation = False
+                    with websocket_lock:
+                        websocket_data_stream["orbit_around_user"] = False
+                        websocket_data_stream["rotate_triangle_formation"] = False
 
                     triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
                     triangle_positions = swap_triangle_positions(triangle_positions, counter)
@@ -391,6 +420,8 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                     # Swap is a one-time action unless re-triggered
                     swap_positions = False
+                    with websocket_lock:
+                        websocket_data_stream["swap_positions"] = False
 
             else:
                 # Calculate and adjust positions for triangular formation
@@ -399,14 +430,6 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                 #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
                 move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
-
-            # Write updated mode flags back to the shared data stream so the
-            # WebSocket server and clients see the current state.
-            websocket_data_stream.update({
-                "orbit_around_user": orbit_around_user,
-                "swap_positions": swap_positions,
-                "rotate_triangle_formation": rotate_triangle_formation,
-            })
 
             # Monitor drones for issues (battery, GPS, etc.)
             should_stop = monitor_drones(
