@@ -22,7 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     "initialPositionSpeed": "3",
     "targetAltitude": "1",
     "offsetDistance": "4",
-    "revolveSpeed": "20",
+    "revolveSpeed": "2",
     "revolveOffsetDistance": "4",
     "swapPositionSpeed": "1",
     "simSpeed": "1",
@@ -35,7 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String initialPositionSpeed = "3";
   String targetAltitude = "1";
   String offsetDistance = "4";
-  String revolveSpeed = "20";
+  String revolveSpeed = "2";
   String revolveOffsetDistance = "4";
   String swapPositionSpeed = "1";
   String simSpeed = "1";

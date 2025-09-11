@@ -352,7 +352,7 @@ async def handle_user_gps(params):
     longitude = params.get("longitude")
     speed = params.get("speed")
     offset_distance = params.get("offset_distance", 4.0)
-    revolve_speed = params.get("revolve_speed", 3.0)
+    revolve_speed = params.get("revolve_speed", 2.0)
     revolve_offset_distance = params.get("revolve_offset_distance", 4.0)
     swap_position_speed = params.get("swap_position_speed", 2.0)  # ✅ Get Swap Position Speed
     orbit_around_user = params.get("orbit_around_user", False)
@@ -428,7 +428,7 @@ async def handle_start_operations(params):
     initial_position_speed = params.get("initial_position_speed", 3.0)
     target_altitude = params.get("target_altitude", 1.0)
     offset_distance = params.get("offset_distance", 4.0)
-    revolve_speed = params.get("revolve_speed", 1.0)
+    revolve_speed = params.get("revolve_speed", 2.0)
     revolve_offset_distance = params.get("revolve_offset_distance", 4.0)
     swap_position_speed = params.get("swap_position_speed", 2.0)  # ✅ Get Swap Position Speed
 

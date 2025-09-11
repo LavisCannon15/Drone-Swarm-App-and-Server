@@ -34,7 +34,7 @@ class GPSService {
 
   // Cached preferences
   double _offsetDistance = 4.0;
-  double _revolveSpeed = 3.0;
+  double _revolveSpeed = 2.0;
   double _revolveOffsetDistance = 4.0;
   double _swapPositionSpeed = 1.0;
   String _selectedMode = 'Normal';
@@ -60,7 +60,7 @@ class GPSService {
     _offsetDistance =
         double.tryParse(prefs.getString('offsetDistance') ?? '') ?? 4.0;
     _revolveSpeed =
-        double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 3.0;
+        double.tryParse(prefs.getString('revolveSpeed') ?? '') ?? 2.0;
     _revolveOffsetDistance =
         double.tryParse(prefs.getString('revolveOffsetDistance') ?? '') ?? 4.0;
     _swapPositionSpeed =

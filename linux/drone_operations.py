@@ -303,7 +303,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             orbit_around_user = websocket_data_stream.get("orbit_around_user", False)
             swap_positions = websocket_data_stream.get("swap_positions", False)
             rotate_triangle_formation = websocket_data_stream.get("rotate_triangle_formation", False)
-            revolve_speed = websocket_data_stream.get("revolve_speed", 1.0)  # m/s
+            revolve_speed = websocket_data_stream.get("revolve_speed", 2.0)  # m/s
             swap_position_speed = websocket_data_stream.get("swap_position_speed", 1.0)
             revolve_offset_distance = websocket_data_stream.get("revolve_offset_distance", 4.0)
 
