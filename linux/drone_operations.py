@@ -325,13 +325,11 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                     angle_offset += speed * elapsed_time
 
                     triangle_positions = calculate_revolving_positions(
-                        user_orbit_lat, user_orbit_lon, revolve_offset_distance, len(drones), angle_offset)                
-                    
+                        user_orbit_lat, user_orbit_lon, revolve_offset_distance, len(drones), angle_offset)
+
                     move_to_positions(drones, triangle_positions, speed, target_altitude)
 
                     logger.debug(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
-
-            
 
                 elif rotate_triangle_formation:
                     orbit_around_user = False
@@ -370,6 +368,9 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                     wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event)
 
+                    # Swap is a one-time action unless re-triggered
+                    swap_positions = False
+
             else:
                 # Calculate and adjust positions for triangular formation
                 triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
@@ -377,6 +378,14 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
 
                 #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
                 move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
+
+            # Write updated mode flags back to the shared data stream so the
+            # WebSocket server and clients see the current state.
+            websocket_data_stream.update({
+                "orbit_around_user": orbit_around_user,
+                "swap_positions": swap_positions,
+                "rotate_triangle_formation": rotate_triangle_formation,
+            })
 
             # Monitor drones for issues (battery, GPS, etc.)
             should_stop = monitor_drones(
