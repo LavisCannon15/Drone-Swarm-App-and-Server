@@ -196,6 +196,8 @@ async def handle_client(websocket, path):
                 await handle_disconnect()
             elif command == "force_disarm":
                 await handle_force_disarm()
+            elif command == "mode_update":
+                await handle_mode_update(params)
             elif command == "subscribe_logs":
                 server_log_clients.add(websocket)
                 await log_message("✅ Client subscribed to server logs.")
@@ -374,6 +376,26 @@ async def handle_user_gps(params):
         # ✅ Debug log for confirmation
         #await log_message(f"📍 Updated User Movement Settings: {drone_command_data}")
 
+
+
+async def handle_mode_update(params):
+    """Update formation mode flags independent of GPS updates."""
+    global drone_command_data
+
+    orbit_around_user = params.get("orbit_around_user", False)
+    swap_positions = params.get("swap_positions", False)
+    rotate_triangle_formation = params.get("rotate_triangle_formation", False)
+
+    drone_command_data.update({
+        "orbit_around_user": orbit_around_user,
+        "swap_positions": swap_positions,
+        "rotate_triangle_formation": rotate_triangle_formation,
+    })
+
+    await log_message(
+        "🎛️ Mode update → orbit_around_user=%s, swap_positions=%s, rotate_triangle_formation=%s"
+        % (orbit_around_user, swap_positions, rotate_triangle_formation)
+    )
 
 
 async def handle_start_operations(params):
