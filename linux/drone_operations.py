@@ -18,7 +18,7 @@ from drone_movements import (
 from position_calculations import (
     calculate_triangle_positions, swap_triangle_positions, rotate_triangle_around_center,
     calculate_revolving_positions, calculate_rotation_params, ensure_equal_distance,
-    ensure_equal_distance_from_user, calculate_rotation_params2
+    ensure_equal_distance_from_user
 )
 
 
@@ -262,7 +262,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     previous_time = time.time()
     counter = 0
 
-    angle_offset = 0
+    angle_offset = 0  # degrees
     last_known_lat, last_known_lon = None, None  # Initialize last known coordinates
     is_stationary = False  # Initialize stationary flag
 
@@ -278,6 +278,7 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             orbit_around_user = websocket_data_stream.get("orbit_around_user", False)
             swap_positions = websocket_data_stream.get("swap_positions", False)
             rotate_triangle_formation = websocket_data_stream.get("rotate_triangle_formation", False)
+            # Tangential speed (m/s) for orbiting/rotation behaviour
             revolve_speed = websocket_data_stream.get("revolve_speed", 1.0)
             swap_position_speed = websocket_data_stream.get("swap_position_speed", 1.0)
             revolve_offset_distance = websocket_data_stream.get("revolve_offset_distance", 4.0)
@@ -318,18 +319,29 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                     elapsed_time = current_time - previous_time
                     previous_time = current_time
 
-                    # Calculate speed and cycle time based on current parameters
-                    speed, cycle_time = calculate_rotation_params(revolve_offset_distance, revolve_speed)
+                    # Calculate rotation parameters.
+                    # ``linear_speed`` is tangential m/s, ``angular_speed`` is degrees/sec.
+                    linear_speed, cycle_time, angular_speed = calculate_rotation_params(
+                        revolve_offset_distance, revolve_speed
+                    )
 
-                    # Adjust the angle_offset based on speed and elapsed time
-                    angle_offset += speed * elapsed_time
+                    # Update angle offset (stored in degrees) based on angular speed.
+                    angle_offset += angular_speed * elapsed_time
 
                     triangle_positions = calculate_revolving_positions(
-                        user_orbit_lat, user_orbit_lon, revolve_offset_distance, len(drones), angle_offset)                
-                    
-                    move_to_positions(drones, triangle_positions, speed, target_altitude)
+                        user_orbit_lat,
+                        user_orbit_lon,
+                        revolve_offset_distance,
+                        len(drones),
+                        angle_offset,
+                    )
 
-                    logger.debug(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    # Command drones using linear speed in m/s.
+                    move_to_positions(drones, triangle_positions, linear_speed, target_altitude)
+
+                    logger.debug(
+                        f"Cycle Time: {cycle_time:.2f}s, Linear: {linear_speed:.2f} m/s, Angular: {angular_speed:.2f} deg/s"
+                    )
 
             
 
@@ -341,18 +353,26 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                     elapsed_time = current_time - previous_time
                     previous_time = current_time
 
-                    # Calculate speed and cycle time based on current parameters
-                    speed, cycle_time = calculate_rotation_params(revolve_offset_distance, revolve_speed)
+                    # Calculate rotation parameters.
+                    linear_speed, cycle_time, angular_speed = calculate_rotation_params(
+                        revolve_offset_distance, revolve_speed
+                    )
 
-                    # Adjust the angle_offset based on speed and elapsed time
-                    angle_offset += speed * elapsed_time
+                    # Update the offset angle (degrees) using angular speed.
+                    angle_offset += angular_speed * elapsed_time
 
-                    triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
+                    triangle_positions = calculate_triangle_positions(
+                        user_orbit_lat,
+                        user_orbit_lon,
+                        revolve_offset_distance,
+                    )
                     triangle_positions = rotate_triangle_around_center(triangle_positions, angle_offset)
 
-                    move_to_positions(drones, triangle_positions, speed, target_altitude)
+                    move_to_positions(drones, triangle_positions, linear_speed, target_altitude)
 
-                    logger.debug(f"Cycle Time: {cycle_time:.2f} seconds, Speed: {speed:.2f} m/s")
+                    logger.debug(
+                        f"Cycle Time: {cycle_time:.2f}s, Linear: {linear_speed:.2f} m/s, Angular: {angular_speed:.2f} deg/s"
+                    )
 
                 elif swap_positions:
                     orbit_around_user = False

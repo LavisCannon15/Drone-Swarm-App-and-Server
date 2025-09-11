@@ -54,27 +54,46 @@ def calculate_revolving_positions(current_lat, current_lon, offset_distance, num
 
 
 
-def calculate_rotation_params(offset_distance, angle_increment):
-    """
-    Calculate the rotation time and speed based on the offset distance and angle increment.
+def calculate_rotation_params(offset_distance, linear_speed):
+    """Calculate rotation characteristics for a circular path.
 
-    :param offset_distance: The distance from the center of rotation.
-    :param angle_increment: The angle increment for each step of rotation in degrees.
-    :return: A tuple containing (speed, rotation_time)
+    Parameters
+    ----------
+    offset_distance: float
+        Radius of the circular path in **meters**.
+    linear_speed: float
+        Desired tangential speed in **meters per second**.
+
+    Returns
+    -------
+    tuple
+        (linear_speed, cycle_time, angular_speed_deg) where:
+
+        * ``linear_speed`` is the input speed in m/s (returned for convenience),
+        * ``cycle_time`` is the time in seconds for one full rotation, and
+        * ``angular_speed_deg`` is the angular speed in degrees per second.
+
+    Notes
+    -----
+    This replaces the previous implementation which incorrectly treated
+    the second argument as an angle increment.  The caller should use
+    ``linear_speed`` for velocity commands and ``angular_speed_deg`` to
+    update any angle offsets.
     """
-    # Calculate the circumference of the circular path
+
+    if linear_speed <= 0:
+        raise ValueError("linear_speed must be positive")
+
+    # Total distance around the circle (meters)
     circumference = 2 * math.pi * offset_distance
-    
-    # Calculate the number of increments needed to complete a full rotation (360 degrees)
-    increments = 360 / angle_increment
 
-    # Calculate the total time to complete a full rotation
-    rotation_time = circumference / increments  # Time for one full rotation
+    # Time (seconds) for one full revolution at the given speed
+    cycle_time = circumference / linear_speed
 
-    # Calculate speed based on circumference and rotation time
-    speed = circumference / rotation_time
-    
-    return speed, rotation_time
+    # Angular velocity in degrees per second
+    angular_speed_deg = 360.0 / cycle_time
+
+    return linear_speed, cycle_time, angular_speed_deg
 
 def calculate_rotation_params2(offset_distance, set_speed):
     circumference = 2 * math.pi * offset_distance
