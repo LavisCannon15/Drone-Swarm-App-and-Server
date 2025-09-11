@@ -28,6 +28,7 @@ from position_calculations import (
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
+logger.setLevel(logging.DEBUG)
 
 # ``websocket_data_stream`` is a shared dictionary between the WebSocket
 # server and this module.  Fields such as ``latitude``, ``longitude`` and

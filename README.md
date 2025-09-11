@@ -33,7 +33,8 @@ Operators can track multiple vehicles, issue flight commands, and view telemetry
 ```bash
 cd linux
 pip install dronekit geopy websockets
-python websocket_server.py
+# Enable verbose logging from drone operations
+LOG_LEVEL=DEBUG python websocket_server.py
 ```
 
 ## Running the App
