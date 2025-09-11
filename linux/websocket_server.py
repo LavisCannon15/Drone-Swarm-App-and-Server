@@ -121,9 +121,19 @@ async def send_telemetry():
             "data": telemetry_data
         })
 
+        mode_message = json.dumps({
+            "command": "mode_update",
+            "data": {
+                "orbit_around_user": drone_command_data.get("orbit_around_user", False),
+                "swap_positions": drone_command_data.get("swap_positions", False),
+                "rotate_triangle_formation": drone_command_data.get("rotate_triangle_formation", False),
+            },
+        })
+
         for client in list(server_log_clients):
             try:
                 await client.send(telemetry_message)
+                await client.send(mode_message)
             except websockets.exceptions.ConnectionClosed:
                 server_log_clients.remove(client)  # Remove disconnected clients
 

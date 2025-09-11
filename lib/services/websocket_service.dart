@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../services/log_manager.dart';
+import '../services/gps_service.dart';
+import '../services/simulated_gps_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
@@ -111,7 +113,7 @@ class WebSocketService {
       LogManager().addLog("✅ Connected to WebSocket: $url");
 
       _webSocket.stream.listen(
-        (data) => _handleIncomingMessage(data),
+        (data) async => await _handleIncomingMessage(data),
         onDone: () {
           if (kDebugMode) {
             print("🔌 WebSocket connection closed.");
@@ -378,7 +380,7 @@ class WebSocketService {
   }
 
   // Handle incoming WebSocket messages
-  void _handleIncomingMessage(String data) {
+  Future<void> _handleIncomingMessage(String data) async {
     try {
       final message = jsonDecode(data);
 
@@ -423,6 +425,21 @@ class WebSocketService {
         final droneId = message["drone_id"]?.toString() ?? "unknown";
         final text = message["message"]?.toString() ?? "";
         addDroneStatus(droneId, text);
+      } else if (message["command"] == "mode_update") {
+        final mode = message["data"] ?? {};
+        final prefs = await SharedPreferences.getInstance();
+        String selectedMode = "Normal";
+        if (mode["orbit_around_user"] == true) {
+          selectedMode = "Orbit";
+        } else if (mode["swap_positions"] == true) {
+          selectedMode = "Swap Positions";
+        } else if (mode["rotate_triangle_formation"] == true) {
+          selectedMode = "Rotate Triangle";
+        }
+        await prefs.setString('selectedMode', selectedMode);
+        // Ensure GPS services pick up the new mode immediately
+        GPSService().refreshSettings();
+        SimulatedGPSService().refreshSettings();
       } else {
 
         if (kDebugMode) {
