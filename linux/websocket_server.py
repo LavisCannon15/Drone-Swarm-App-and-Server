@@ -27,7 +27,7 @@ def _resolve_log_level() -> int:
 
 logging.basicConfig(
     level=_resolve_log_level(),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s | %(message)s"
 )
 
 
@@ -37,7 +37,14 @@ logger = logging.getLogger("server")
 vehicles = {}  # Store connected drones
 server_log_clients = set()  # Store connected clients for log streaming
 status_text_clients = set()  # Store clients for drone status text
-drone_command_data = {"latitude": 0.0, "longitude": 0.0, "speed": 0.0}  # Holds GPS & movement settings
+drone_command_data = {
+    "latitude": 0.0,
+    "longitude": 0.0,
+    "speed": 0.0,
+    "orbit_around_user": False,
+    "swap_positions": False,
+    "rotate_triangle_formation": False,
+}  # Holds GPS, movement settings, and active formation mode
 telemetry_task = None
 drone_thread = None
 landing_complete_event = threading.Event()
@@ -355,10 +362,6 @@ async def handle_user_gps(params):
     revolve_speed = params.get("revolve_speed", 2.0)
     revolve_offset_distance = params.get("revolve_offset_distance", 4.0)
     swap_position_speed = params.get("swap_position_speed", 2.0)  # ✅ Get Swap Position Speed
-    orbit_around_user = params.get("orbit_around_user", False)
-    swap_positions = params.get("swap_positions", False)
-    rotate_triangle_formation = params.get("rotate_triangle_formation", False)
-
     if latitude is not None and longitude is not None:
         drone_command_data.update({
             "latitude": latitude,
@@ -368,9 +371,6 @@ async def handle_user_gps(params):
             "revolve_speed": revolve_speed,
             "revolve_offset_distance": revolve_offset_distance,
             "swap_position_speed": swap_position_speed,  # ✅ Store Swap Position Speed
-            "orbit_around_user": orbit_around_user,
-            "swap_positions": swap_positions,
-            "rotate_triangle_formation": rotate_triangle_formation
         })
 
         # ✅ Debug log for confirmation
@@ -392,10 +392,14 @@ async def handle_mode_update(params):
         "rotate_triangle_formation": rotate_triangle_formation,
     })
 
-    await log_message(
-        "🎛️ Mode update → orbit_around_user=%s, swap_positions=%s, rotate_triangle_formation=%s"
-        % (orbit_around_user, swap_positions, rotate_triangle_formation)
-    )
+    mode_name = "normal"
+    if orbit_around_user:
+        mode_name = "orbit"
+    elif rotate_triangle_formation:
+        mode_name = "rotate_triangle"
+    elif swap_positions:
+        mode_name = "swap_positions"
+    await log_message(f"MODE_SET={mode_name}")
 
 
 async def handle_start_operations(params):
@@ -434,14 +438,20 @@ async def handle_start_operations(params):
 
     drone_command_data.update({
         "offset_distance": offset_distance,
-        "orbit_around_user": params.get("orbit_around_user", False),
-        "swap_positions": params.get("swap_positions", False),
-        "rotate_triangle_formation": params.get("rotate_triangle_formation", False),
         "revolve_speed": revolve_speed,
         "revolve_offset_distance": revolve_offset_distance,
         "swap_position_speed": swap_position_speed,  # ✅ Store Swap Position Speed
         "initial_position_speed": initial_position_speed,
     })
+
+    mode_name = "normal"
+    if drone_command_data.get("orbit_around_user", False):
+        mode_name = "orbit"
+    elif drone_command_data.get("rotate_triangle_formation", False):
+        mode_name = "rotate_triangle"
+    elif drone_command_data.get("swap_positions", False):
+        mode_name = "swap_positions"
+    await log_message(f"MODE_SET={mode_name}")
 
     # ✅ Only pass the list of `Vehicle` objects, NOT tuples
     drone_list = list(vehicles.values())

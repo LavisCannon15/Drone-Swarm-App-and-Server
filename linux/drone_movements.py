@@ -3,8 +3,13 @@ import time
 import logging
 from dronekit import LocationGlobalRelative
 from pymavlink import mavutil
+from geopy.distance import great_circle
 
 logger = logging.getLogger(__name__)
+_last_command_sent_at = 0.0
+_last_log_by_drone = {}
+_min_command_interval_s = 0.2  # 5 Hz max command rate for target updates
+_min_log_interval_s = 0.5      # keep console output readable
 """
 def move_to_positions(drones, triangle_positions,kalman_user_speed, altitude):
     for drone, target_position in zip(drones, triangle_positions):
@@ -66,12 +71,46 @@ def construct_position_target_message(vehicle, location):
     )
     return msg
 
-def move_to_positions(drones, triangle_positions, kalman_user_speed, altitude):
+def move_to_positions(
+    drones,
+    triangle_positions,
+    kalman_user_speed,
+    altitude,
+    mode_label="follow",
+):
+    global _last_command_sent_at
+
+    now = time.monotonic()
+    if now - _last_command_sent_at < _min_command_interval_s:
+        return
+    _last_command_sent_at = now
+
     for drone, target_position in zip(drones, triangle_positions):
         drone_id = getattr(drone, "id", "Unknown")
 
+        # Per-drone tracking error (meters) for speed compensation.
+        tracking_error_m = 0.0
+        try:
+            current_pos = drone.location.global_relative_frame
+            if current_pos and current_pos.lat is not None and current_pos.lon is not None:
+                tracking_error_m = great_circle(
+                    (current_pos.lat, current_pos.lon), target_position
+                ).meters
+        except Exception:
+            tracking_error_m = 0.0
+
+        # Orbit targets are continuously moving. Large catch-up spikes make the
+        # drones cut across the circle and visibly "breathe" in and out.
+        base_speed = max(float(kalman_user_speed), 0.3)
+        if mode_label == "orbit":
+            speed_boost = min(0.45, 0.10 * tracking_error_m)
+            commanded_speed = min(1.6, base_speed + speed_boost)
+        else:
+            speed_boost = min(1.5, 0.20 * tracking_error_m)
+            commanded_speed = min(4.0, base_speed + speed_boost)
+
         # 1) set desired groundspeed (send every tick as requested)
-        set_groundspeed(drone, kalman_user_speed)
+        set_groundspeed(drone, commanded_speed)
 
         # 2) stream latest position-only target
         target_location = LocationGlobalRelative(target_position[0], target_position[1], altitude)
@@ -82,9 +121,30 @@ def move_to_positions(drones, triangle_positions, kalman_user_speed, altitude):
         # log (note: vehicle.groundspeed is an estimate and may lag the set value)
         try:
             gs = getattr(drone, "groundspeed", float("nan"))
-            logger.info(f"{drone_id}: Target {target_position} | GS {gs:.2f} m/s (Set {kalman_user_speed:.2f})")
+            last_log_at = _last_log_by_drone.get(drone_id, 0.0)
+            if now - last_log_at >= _min_log_interval_s:
+                _last_log_by_drone[drone_id] = now
+                logger.info(
+                    "%s | mode=%s | target=(%.7f, %.7f) | groundspeed=%.2f/%.2f",
+                    drone_id,
+                    mode_label,
+                    target_position[0],
+                    target_position[1],
+                    gs,
+                    commanded_speed,
+                )
         except Exception:
-            logger.info(f"{drone_id}: Target {target_position} | Set GS {kalman_user_speed:.2f} m/s")
+            last_log_at = _last_log_by_drone.get(drone_id, 0.0)
+            if now - last_log_at >= _min_log_interval_s:
+                _last_log_by_drone[drone_id] = now
+                logger.info(
+                    "%s | mode=%s | target=(%.7f, %.7f) | speed_set=%.2f",
+                    drone_id,
+                    mode_label,
+                    target_position[0],
+                    target_position[1],
+                    commanded_speed,
+                )
 
         # fixed ~10 Hz
         #time.sleep(0.1)

@@ -7,7 +7,6 @@ import '../services/gps_service.dart';
 import '../services/websocket_service.dart';
 
 class MapWidget extends StatefulWidget {
-
   const MapWidget({super.key});
 
   @override
@@ -15,6 +14,8 @@ class MapWidget extends StatefulWidget {
 }
 
 class MapWidgetState extends State<MapWidget> {
+  static const Size _mobileDroneMarkerSize = Size(1, 1);
+
   GoogleMapController? _mapController;
   final GPSService gpsService = GPSService();
   final WebSocketService webSocketService = WebSocketService();
@@ -35,12 +36,12 @@ class MapWidgetState extends State<MapWidget> {
     initializeCameraPosition();
     _loadDroneIcon();
     _telemetrySub =
-    webSocketService.telemetryStream.listen((_) => _scheduleMarkerUpdate());
+        webSocketService.telemetryStream.listen((_) => _scheduleMarkerUpdate());
   }
 
   Future<void> _loadDroneIcon() async {
     final icon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(32, 32)),
+      const ImageConfiguration(size: _mobileDroneMarkerSize),
       'assets/icons/drone_marker.png',
     );
     if (!mounted) return;

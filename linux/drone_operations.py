@@ -3,6 +3,8 @@ from dronekit import VehicleMode
 import time
 import threading
 import logging
+import math
+import itertools
 from concurrent.futures import ThreadPoolExecutor
 from global_vars import stop_operations_event
 from geopy.distance import great_circle  # Ensure you have geopy installed
@@ -21,14 +23,12 @@ from position_calculations import (
     rotate_triangle_around_center,
     calculate_revolving_positions,
     calculate_rotation_params,
-    ensure_equal_distance,
-    ensure_equal_distance_from_user,
 )
 
 
 logger = logging.getLogger(__name__)
-logger.propagate = False
-logger.setLevel(logging.DEBUG)
+logger.propagate = True
+logger.setLevel(logging.INFO)
 
 # ``websocket_data_stream`` is a shared dictionary between the WebSocket
 # server and this module.  Fields such as ``latitude``, ``longitude`` and
@@ -192,7 +192,9 @@ def determine_user_coordinates(
     last_known_lat=None,
     last_known_lon=None,
     is_stationary=False,
-    stationary_speed_threshold=0.5,
+    stationary_speed_threshold=0.35,
+    moving_speed_threshold=0.8,
+    movement_distance_threshold_m=1.5,
 ):
     """
     Determine the user's coordinates based on movement.
@@ -204,27 +206,198 @@ def determine_user_coordinates(
         last_known_lat (float): Last known latitude when the user was stationary.
         last_known_lon (float): Last known longitude when the user was stationary.
         is_stationary (bool): Whether the user was previously stationary.
-        stationary_speed_threshold (float): Speed threshold to determine if the user is stationary.
+        stationary_speed_threshold (float): Speed threshold to enter stationary state.
+        moving_speed_threshold (float): Speed threshold to exit stationary state.
+        movement_distance_threshold_m (float): Distance threshold to exit stationary state.
 
     Returns:
         tuple: (user_orbit_lat, user_orbit_lon, last_known_lat, last_known_lon, is_stationary)
     """
-    if user_speed < stationary_speed_threshold:  # User is stationary
-        if not is_stationary:
-            # Cache the current position
+    # Initialize orbit lock center on first sample.
+    if last_known_lat is None or last_known_lon is None:
+        last_known_lat, last_known_lon = current_lat, current_lon
+
+    distance_from_lock = great_circle(
+        (current_lat, current_lon), (last_known_lat, last_known_lon)
+    ).meters
+
+    # Use hysteresis (different enter/exit thresholds) plus distance guard to
+    # avoid rapid mode flipping from noisy GPS speed values.
+    if is_stationary:
+        if (
+            user_speed > moving_speed_threshold
+            and distance_from_lock > movement_distance_threshold_m
+        ):
+            logger.info("User resumed movement.")
+            is_stationary = False
             last_known_lat, last_known_lon = current_lat, current_lon
-            logger.info("User is stationary. Caching last known GPS position.")
-            is_stationary = True
     else:
-        if is_stationary:
-            logger.info("User resumed movement")
-        is_stationary = False  # User is moving
+        if user_speed < stationary_speed_threshold:
+            last_known_lat, last_known_lon = current_lat, current_lon
+            logger.info("User is stationary. Locking orbit center.")
+            is_stationary = True
+        else:
+            # Keep a fresh reference while user is moving.
+            last_known_lat, last_known_lon = current_lat, current_lon
 
     # Use last known position if stationary, otherwise live GPS data
     user_orbit_lat = last_known_lat if is_stationary else current_lat
     user_orbit_lon = last_known_lon if is_stationary else current_lon
 
     return user_orbit_lat, user_orbit_lon, last_known_lat, last_known_lon, is_stationary
+
+
+def _required_radius_for_spacing(min_spacing_m, num_drones):
+    """Compute minimum orbit radius needed for pairwise spacing on a circle."""
+    if num_drones <= 1:
+        return 0.0
+    denominator = 2.0 * math.sin(math.pi / num_drones)
+    if denominator <= 0.0:
+        return 0.0
+    return min_spacing_m / denominator
+
+
+def _minimum_pairwise_distance_points(points):
+    if len(points) < 2:
+        return float("inf")
+    minimum = float("inf")
+    for i in range(len(points)):
+        for j in range(i + 1, len(points)):
+            minimum = min(minimum, great_circle(points[i], points[j]).meters)
+    return minimum
+
+
+def _minimum_pairwise_distance_drones(drones):
+    positions = []
+    for drone in drones:
+        try:
+            pos = drone.location.global_relative_frame
+            if pos and pos.lat is not None and pos.lon is not None:
+                positions.append((pos.lat, pos.lon))
+        except Exception:
+            continue
+    return _minimum_pairwise_distance_points(positions)
+
+
+def _average_distance_to_center_drones(drones, center_lat, center_lon):
+    distances = []
+    for drone in drones:
+        try:
+            pos = drone.location.global_relative_frame
+            if pos and pos.lat is not None and pos.lon is not None:
+                distances.append(
+                    great_circle((center_lat, center_lon), (pos.lat, pos.lon)).meters
+                )
+        except Exception:
+            continue
+    if not distances:
+        return float("inf")
+    return sum(distances) / len(distances)
+
+
+def _build_orbit_assignment(drones, orbit_points):
+    """
+    Build a stable mapping from drone index -> orbit point index.
+    Keeps each drone on a consistent lane to avoid crossover during orbit entry.
+    """
+    n = min(len(drones), len(orbit_points))
+    if n <= 1:
+        return list(range(n))
+
+    drone_positions = []
+    for idx in range(n):
+        try:
+            pos = drones[idx].location.global_relative_frame
+            if pos and pos.lat is not None and pos.lon is not None:
+                drone_positions.append((pos.lat, pos.lon))
+            else:
+                drone_positions.append(orbit_points[idx])
+        except Exception:
+            drone_positions.append(orbit_points[idx])
+
+    indices = list(range(n))
+    if n <= 7:
+        best_perm = None
+        best_cost = float("inf")
+        for perm in itertools.permutations(indices):
+            total_cost = 0.0
+            for i in indices:
+                total_cost += great_circle(
+                    drone_positions[i], orbit_points[perm[i]]
+                ).meters
+            if total_cost < best_cost:
+                best_cost = total_cost
+                best_perm = perm
+        return list(best_perm) if best_perm is not None else indices
+
+    # Fallback greedy assignment for larger swarms.
+    remaining = set(indices)
+    assignment = []
+    for i in indices:
+        best_idx = min(
+            remaining,
+            key=lambda p: great_circle(drone_positions[i], orbit_points[p]).meters,
+        )
+        assignment.append(best_idx)
+        remaining.remove(best_idx)
+    return assignment
+
+
+def _apply_assignment(points, assignment):
+    if not assignment or len(points) != len(assignment):
+        return points
+    return [points[idx] for idx in assignment]
+
+
+def _bearing_from_center_deg(center_lat, center_lon, point_lat, point_lon):
+    phi1 = math.radians(center_lat)
+    phi2 = math.radians(point_lat)
+    dlambda = math.radians(point_lon - center_lon)
+
+    y = math.sin(dlambda) * math.cos(phi2)
+    x = (
+        math.cos(phi1) * math.sin(phi2)
+        - math.sin(phi1) * math.cos(phi2) * math.cos(dlambda)
+    )
+    return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
+
+
+def _circular_mean_deg(angles_deg):
+    if not angles_deg:
+        return None
+
+    sin_sum = sum(math.sin(math.radians(angle)) for angle in angles_deg)
+    cos_sum = sum(math.cos(math.radians(angle)) for angle in angles_deg)
+    if abs(sin_sum) < 1e-9 and abs(cos_sum) < 1e-9:
+        return None
+
+    return (math.degrees(math.atan2(sin_sum, cos_sum)) + 360.0) % 360.0
+
+
+def _measure_formation_phase_deg(drones, center_lat, center_lon, slot_count):
+    if slot_count <= 0:
+        return None
+
+    phase_samples = []
+    for drone in drones:
+        try:
+            pos = drone.location.global_relative_frame
+            if pos and pos.lat is not None and pos.lon is not None:
+                bearing = _bearing_from_center_deg(center_lat, center_lon, pos.lat, pos.lon)
+                phase_samples.append((bearing * slot_count) % 360.0)
+        except Exception:
+            continue
+
+    phase_mean = _circular_mean_deg(phase_samples)
+    if phase_mean is None:
+        return None
+
+    return (phase_mean / slot_count) % 360.0
+
+
+def _wrap_phase_error_deg(error_deg, period_deg):
+    half_period = period_deg / 2.0
+    return (error_deg + half_period) % period_deg - half_period
 
 
 
@@ -274,10 +447,26 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     current_lat = websocket_data_stream.get("latitude", 0.0)
     current_lon = websocket_data_stream.get("longitude", 0.0)
     offset_distance = websocket_data_stream.get("offset_distance", 3.0)
+    revolve_offset_distance = websocket_data_stream.get("revolve_offset_distance", 4.0)
+    initial_orbit_around_user = websocket_data_stream.get("orbit_around_user", False)
+    initial_swap_positions = websocket_data_stream.get("swap_positions", False)
+    initial_rotate_triangle_formation = websocket_data_stream.get(
+        "rotate_triangle_formation", False
+    )
+
+    initial_position_radius = offset_distance
+    if (
+        initial_orbit_around_user
+        or initial_swap_positions
+        or initial_rotate_triangle_formation
+    ):
+        initial_position_radius = revolve_offset_distance
 
     logger.info("Phase: formation positioning start")
     # Compute triangle formation based on initial user location
-    triangle_positions = calculate_triangle_positions(current_lat, current_lon, offset_distance)
+    triangle_positions = calculate_triangle_positions(
+        current_lat, current_lon, initial_position_radius
+    )
     move_to_initial_positions(drones, triangle_positions, initial_position_speed)
     wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event)
     logger.info("Phase: formation positioning complete")
@@ -290,11 +479,18 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
     angle_offset = 0
     last_known_lat, last_known_lon = None, None  # Initialize last known coordinates
     is_stationary = False  # Initialize stationary flag
+    control_loop_period = 0.2  # 5 Hz target update loop
+    orbit_assignment = None
+    orbit_phase_integral = 0.0
+    follow_assignment = None
+    last_effective_mode = None
+    last_spacing_log_at = 0.0
 
     logger.info("Phase: active operation start")
     try:
         # Main loop: move drones based on real-time user movement
         while not stop_operations_event.is_set():
+            loop_started_at = time.time()
             # Retrieve latest real-time data from WebSocket
             current_lat = websocket_data_stream.get("latitude", 0.0)
             current_lon = websocket_data_stream.get("longitude", 0.0)
@@ -333,104 +529,294 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
                 last_known_lon,
                 previous_is_stationary,
             )
+            current_time = time.time()
+            elapsed_time = max(0.0, current_time - previous_time)
+            previous_time = current_time
 
-            if is_stationary:
-                if orbit_around_user:
-                    swap_positions = False
-                    rotate_triangle_formation = False
-                    with websocket_lock:
-                        websocket_data_stream["swap_positions"] = False
-                        websocket_data_stream["rotate_triangle_formation"] = False
+            requested_mode = "follow"
+            if orbit_around_user:
+                requested_mode = "orbit"
+            elif rotate_triangle_formation:
+                requested_mode = "rotate_triangle"
+            elif swap_positions:
+                requested_mode = "swap_positions"
 
-                    current_time = time.time()
-                    elapsed_time = current_time - previous_time
-                    previous_time = current_time
+            # Orbit mode is intentionally active only when the user is stationary.
+            effective_mode = (
+                "follow"
+                if requested_mode == "orbit" and not is_stationary
+                else requested_mode
+            )
+            entering_orbit = effective_mode == "orbit" and last_effective_mode != "orbit"
+            if effective_mode != last_effective_mode:
+                logger.info(
+                    "MODE=%s | stationary=%s",
+                    effective_mode,
+                    is_stationary,
+                )
+                if effective_mode != "orbit":
+                    orbit_assignment = None
+                    orbit_phase_integral = 0.0
+                if effective_mode != "follow":
+                    follow_assignment = None
+                last_effective_mode = effective_mode
 
-                    # Calculate linear speed and cycle time based on current parameters
-                    linear_speed, cycle_time = calculate_rotation_params(
-                        revolve_offset_distance, revolve_speed
+            if effective_mode == "orbit":
+                swap_positions = False
+                rotate_triangle_formation = False
+                with websocket_lock:
+                    websocket_data_stream["swap_positions"] = False
+                    websocket_data_stream["rotate_triangle_formation"] = False
+
+                requested_spacing = max(float(offset_distance), 4.0)
+                safe_radius = max(0.1, float(revolve_offset_distance))
+                minimum_radius = _required_radius_for_spacing(
+                    requested_spacing, len(drones)
+                )
+                safe_radius = max(safe_radius, minimum_radius)
+
+                requested_speed = max(0.0, float(revolve_speed))
+                max_angular_rate = 0.20  # rad/s safety cap for stable tracking
+                safe_speed = min(
+                    requested_speed,
+                    max(0.3, safe_radius * max_angular_rate),
+                )
+
+                phase_period = 360.0 / max(len(drones), 1)
+                measured_phase = _measure_formation_phase_deg(
+                    drones,
+                    user_orbit_lat,
+                    user_orbit_lon,
+                    len(drones),
+                )
+                live_orbit_radius = _average_distance_to_center_drones(
+                    drones, user_orbit_lat, user_orbit_lon
+                )
+
+                if entering_orbit and measured_phase is not None:
+                    angle_offset = measured_phase
+                    orbit_phase_integral = 0.0
+                    logger.info(
+                        "Orbit phase lock | phase=%.1f | offset_live=%.2fm | offset_set=%.2fm",
+                        measured_phase % phase_period,
+                        live_orbit_radius,
+                        safe_radius,
                     )
 
-                    # Adjust the angle_offset using the cycle time (degrees per second)
-                    angle_offset += (360 / cycle_time) * elapsed_time
-
-                    triangle_positions = calculate_revolving_positions(
-                        user_orbit_lat,
-                        user_orbit_lon,
-                        revolve_offset_distance,
-                        len(drones),
-                        angle_offset,
+                _, cycle_time = calculate_rotation_params(safe_radius, max(safe_speed, 0.01))
+                if safe_speed > 0:
+                    angle_offset = (angle_offset + (360 / cycle_time) * elapsed_time) % 360
+                phase_error = 0.0
+                if measured_phase is not None:
+                    phase_error = _wrap_phase_error_deg(
+                        measured_phase - angle_offset,
+                        phase_period,
                     )
+                    orbit_phase_integral += phase_error * elapsed_time
+                    orbit_phase_integral = max(-20.0, min(20.0, orbit_phase_integral))
+                else:
+                    orbit_phase_integral = 0.0
 
-                    move_to_positions(drones, triangle_positions, linear_speed, target_altitude)
+                phase_correction = max(
+                    -8.0,
+                    min(8.0, 0.45 * phase_error + 0.08 * orbit_phase_integral),
+                )
+                command_phase = (angle_offset + phase_correction) % 360.0
 
-                    logger.debug(
-                        f"Cycle Time: {cycle_time:.2f} seconds, Speed: {linear_speed:.2f} m/s"
+                triangle_positions = calculate_revolving_positions(
+                    user_orbit_lat,
+                    user_orbit_lon,
+                    safe_radius,
+                    len(drones),
+                    command_phase,
+                )
+
+                if entering_orbit or orbit_assignment is None or len(orbit_assignment) != len(drones):
+                    orbit_assignment = _build_orbit_assignment(
+                        drones, triangle_positions
                     )
+                triangle_positions = _apply_assignment(
+                    triangle_positions, orbit_assignment
+                )
+                target_spacing = _minimum_pairwise_distance_points(triangle_positions)
+                live_spacing = _minimum_pairwise_distance_drones(drones)
 
-                elif rotate_triangle_formation:
-                    orbit_around_user = False
-                    swap_positions = False
-                    with websocket_lock:
-                        websocket_data_stream["orbit_around_user"] = False
-                        websocket_data_stream["swap_positions"] = False
-
-                    current_time = time.time()
-                    elapsed_time = current_time - previous_time
-                    previous_time = current_time
-
-                    # Calculate linear speed and cycle time based on current parameters
-                    linear_speed, cycle_time = calculate_rotation_params(
-                        revolve_offset_distance, revolve_speed
+                command_speed = max(safe_speed, 0.3)
+                move_to_positions(
+                    drones,
+                    triangle_positions,
+                    command_speed,
+                    target_altitude,
+                    mode_label="orbit",
+                )
+                if current_time - last_spacing_log_at >= 1.0:
+                    logger.info(
+                        "SPACING mode=orbit live=%.2fm target=%.2fm offset_set=%.2fm offset_cmd=%.2fm live_offset=%.2fm speed_set=%.2f phase_meas=%.1f phase_cmd=%.1f phase_err=%.1f",
+                        live_spacing,
+                        target_spacing,
+                        safe_radius,
+                        safe_radius,
+                        live_orbit_radius,
+                        command_speed,
+                        measured_phase % phase_period if measured_phase is not None else float("nan"),
+                        command_phase % phase_period,
+                        phase_error,
                     )
+                    last_spacing_log_at = current_time
 
-                    # Adjust the angle_offset using the cycle time (degrees per second)
-                    angle_offset += (360 / cycle_time) * elapsed_time
+                logger.debug(
+                    "Orbit | center=(%.7f, %.7f) | cycle=%.2fs | speed=%.2f m/s | phase_ref=%.1f | phase_cmd=%.1f | phase_err=%.1f | radius=%.2f | target_spacing=%.2f",
+                    user_orbit_lat,
+                    user_orbit_lon,
+                    cycle_time,
+                    command_speed,
+                    angle_offset,
+                    command_phase,
+                    phase_error,
+                    safe_radius,
+                    target_spacing,
+                )
 
-                    triangle_positions = calculate_triangle_positions(
-                        user_orbit_lat, user_orbit_lon, revolve_offset_distance
-                    )
-                    triangle_positions = rotate_triangle_around_center(
-                        triangle_positions, angle_offset
-                    )
+            elif effective_mode == "rotate_triangle":
+                orbit_around_user = False
+                swap_positions = False
+                with websocket_lock:
+                    websocket_data_stream["orbit_around_user"] = False
+                    websocket_data_stream["swap_positions"] = False
 
-                    move_to_positions(drones, triangle_positions, linear_speed, target_altitude)
+                # Calculate linear speed and cycle time based on current parameters
+                requested_spacing = max(float(offset_distance), 4.0)
+                safe_radius = max(0.1, float(revolve_offset_distance))
+                safe_radius = max(
+                    safe_radius,
+                    _required_radius_for_spacing(requested_spacing, len(drones)),
+                )
+                safe_speed = max(0.0, float(revolve_speed))
+                linear_speed, cycle_time = calculate_rotation_params(
+                    safe_radius, max(safe_speed, 0.01)
+                )
 
-                    logger.debug(
-                        f"Cycle Time: {cycle_time:.2f} seconds, Speed: {linear_speed:.2f} m/s"
-                    )
+                # Adjust the angle_offset using the cycle time (degrees per second)
+                if safe_speed > 0:
+                    angle_offset = (angle_offset + (360 / cycle_time) * elapsed_time) % 360
 
-                elif swap_positions:
-                    orbit_around_user = False
-                    rotate_triangle_formation = False
-                    with websocket_lock:
-                        websocket_data_stream["orbit_around_user"] = False
-                        websocket_data_stream["rotate_triangle_formation"] = False
+                triangle_positions = calculate_triangle_positions(
+                    user_orbit_lat, user_orbit_lon, safe_radius
+                )
+                triangle_positions = rotate_triangle_around_center(
+                    triangle_positions, angle_offset
+                )
 
-                    triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
-                    triangle_positions = swap_triangle_positions(triangle_positions, counter)
+                move_to_positions(
+                    drones,
+                    triangle_positions,
+                    max(linear_speed, 0.3),
+                    target_altitude,
+                    mode_label="rotate_triangle",
+                )
 
-                    # Increment the counter and reset if necessary
-                    counter += 1
-                    if counter > 2:  # Reset after maximum number of swaps
-                        counter = 0
+                logger.debug(
+                    f"Cycle Time: {cycle_time:.2f} seconds, Speed: {linear_speed:.2f} m/s"
+                )
 
-                    move_to_positions(drones, triangle_positions, swap_position_speed, target_altitude)
+            elif effective_mode == "swap_positions":
+                orbit_around_user = False
+                rotate_triangle_formation = False
+                with websocket_lock:
+                    websocket_data_stream["orbit_around_user"] = False
+                    websocket_data_stream["rotate_triangle_formation"] = False
 
-                    wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event)
+                requested_spacing = max(float(offset_distance), 4.0)
+                safe_radius = max(0.1, float(revolve_offset_distance))
+                safe_radius = max(
+                    safe_radius,
+                    _required_radius_for_spacing(requested_spacing, len(drones)),
+                )
+                triangle_positions = calculate_triangle_positions(
+                    user_orbit_lat,
+                    user_orbit_lon,
+                    safe_radius,
+                )
+                triangle_positions = swap_triangle_positions(triangle_positions, counter)
 
-                    # Swap is a one-time action unless re-triggered
-                    swap_positions = False
-                    with websocket_lock:
-                        websocket_data_stream["swap_positions"] = False
+                # Increment the counter and reset if necessary
+                counter += 1
+                if counter > 2:  # Reset after maximum number of swaps
+                    counter = 0
+
+                move_to_positions(
+                    drones,
+                    triangle_positions,
+                    max(float(swap_position_speed), 0.3),
+                    target_altitude,
+                    mode_label="swap_positions",
+                )
+
+                wait_for_drones_to_reach_positions(drones, triangle_positions, stop_operations_event)
+
+                # Swap is a one-time action unless re-triggered
+                swap_positions = False
+                with websocket_lock:
+                    websocket_data_stream["swap_positions"] = False
 
             else:
                 # Calculate and adjust positions for triangular formation
-                triangle_positions = calculate_triangle_positions(user_orbit_lat, user_orbit_lon, revolve_offset_distance)
-                triangle_positions = ensure_equal_distance(drones, triangle_positions, offset_distance)
+                requested_spacing = max(float(offset_distance), 4.0)
+                follow_set_radius = max(0.1, float(offset_distance))
+                follow_set_radius = max(
+                    follow_set_radius,
+                    _required_radius_for_spacing(requested_spacing, len(drones)),
+                )
+                follow_radius = follow_set_radius
+                triangle_positions = calculate_triangle_positions(
+                    user_orbit_lat, user_orbit_lon, follow_radius
+                )
+                if follow_assignment is None or len(follow_assignment) != len(drones):
+                    follow_assignment = _build_orbit_assignment(
+                        drones, triangle_positions
+                    )
+                triangle_positions = _apply_assignment(
+                    triangle_positions, follow_assignment
+                )
+                target_spacing = _minimum_pairwise_distance_points(triangle_positions)
+
+                # If live spacing collapses in simulation, widen triangle and slow.
+                live_spacing = _minimum_pairwise_distance_drones(drones)
+                follow_speed = max(float(kalman_user_speed), 0.3)
+                if live_spacing < max(3.0, 0.8 * target_spacing):
+                    follow_radius += 0.7
+                    triangle_positions = calculate_triangle_positions(
+                        user_orbit_lat, user_orbit_lon, follow_radius
+                    )
+                    triangle_positions = _apply_assignment(
+                        triangle_positions, follow_assignment
+                    )
+                    follow_speed = min(max(follow_speed, 0.6), 1.2)
+                    logger.warning(
+                        "Follow deformation: live=%.2fm target=%.2fm. Expanding radius to %.2fm.",
+                        live_spacing,
+                        target_spacing,
+                        follow_radius,
+                    )
 
                 #move_to_positions_velocity(drones, triangle_positions, kalman_user_speed, target_altitude)
-                move_to_positions(drones, triangle_positions, kalman_user_speed, target_altitude)
+                move_to_positions(
+                    drones,
+                    triangle_positions,
+                    follow_speed,
+                    target_altitude,
+                    mode_label="follow",
+                )
+                if current_time - last_spacing_log_at >= 1.0:
+                    logger.info(
+                        "SPACING mode=follow live=%.2fm target=%.2fm offset_set=%.2fm offset_cmd=%.2fm speed_set=%.2f",
+                        live_spacing,
+                        target_spacing,
+                        follow_set_radius,
+                        follow_radius,
+                        follow_speed,
+                    )
+                    last_spacing_log_at = current_time
 
             # Monitor drones for issues (battery, GPS, etc.)
             should_stop = monitor_drones(
@@ -440,6 +826,11 @@ def operate_drones(drones, takeoff_altitude, target_altitude, websocket_data_str
             )
             if should_stop:
                 break  # Stop operations if monitoring indicates issues
+
+            loop_elapsed = time.time() - loop_started_at
+            sleep_time = control_loop_period - loop_elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
 
     except (KeyboardInterrupt, TimeoutError, ValueError, Exception) as e:
         handle_drone_exceptions(e, stop_operations_event)
