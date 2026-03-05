@@ -56,15 +56,18 @@ class _ModeSelectorState extends State<ModeSelector> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('selectedMode', mode);
 
+          // Update cached values first so outgoing GPS updates match the new mode.
+          await GPSService().refreshSettings();
+          await SimulatedGPSService().refreshSettings();
+
+          // Mark mode as locally selected to avoid stale server echo overriding it.
+          WebSocketService().registerLocalModeSelection(mode);
+
           await WebSocketService().sendCommand('mode_update', {
             'orbit_around_user': mode == 'Orbit',
             'swap_positions': mode == 'Swap Positions',
             'rotate_triangle_formation': mode == 'Rotate Triangle',
           });
-
-          // Update cached values so GPS updates reflect the new mode
-          await GPSService().refreshSettings();
-          await SimulatedGPSService().refreshSettings();
 
           LogManager().addLog("🎛️ Mode changed to: $mode");
         }

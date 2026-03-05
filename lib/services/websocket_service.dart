@@ -28,6 +28,10 @@ class WebSocketService {
   int _retryCount = 0;
   final int _maxRetries = 5;
   bool _isReconnecting = false;
+  DateTime? _lastLocalModeSelectionAt;
+  String? _lastLocalModeSelection;
+  static const Duration _localModeSelectionGracePeriod =
+      Duration(seconds: 3);
   void Function(int attempt, Duration delay)? onReconnectionAttempt;
 
   // ─── Telemetry stream ────────────────────────────────────────────────────────
@@ -350,6 +354,11 @@ class WebSocketService {
     LogManager().addLog("🚀 Sent command: $message");
   }
 
+  void registerLocalModeSelection(String mode) {
+    _lastLocalModeSelection = mode;
+    _lastLocalModeSelectionAt = DateTime.now();
+  }
+
   // Send connection requests to drones
   Future<void> connectToDrones(List<String> droneConnections) async {
     if (!isConnected) {
@@ -436,6 +445,21 @@ class WebSocketService {
         } else if (mode["rotate_triangle_formation"] == true) {
           selectedMode = "Rotate Triangle";
         }
+
+        final localMode = _lastLocalModeSelection;
+        final localSelectionAt = _lastLocalModeSelectionAt;
+        final isWithinLocalGracePeriod = localSelectionAt != null &&
+            DateTime.now().difference(localSelectionAt) <=
+                _localModeSelectionGracePeriod;
+
+        if (isWithinLocalGracePeriod &&
+            localMode != null &&
+            selectedMode != localMode) {
+          LogManager().addLog(
+              "⏳ Ignoring stale server mode_update ($selectedMode) during local mode sync.");
+          return;
+        }
+
         await prefs.setString('selectedMode', selectedMode);
         // Ensure GPS services pick up the new mode immediately
         GPSService().refreshSettings();
@@ -480,4 +504,3 @@ class WebSocketService {
     _emergencyStopStreamController.close();
   }
 }
-

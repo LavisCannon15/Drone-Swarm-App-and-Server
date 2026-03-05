@@ -17,8 +17,8 @@ class SimulatedGPSService {
     await _init();
   }
 
-  double latitude = -35.3631723;
-  double longitude = 149.1652375;
+  double latitude = 40.829202;
+  double longitude = -73.91772;
   double speed = 1.0;                  // meters per second
   double maxDistance = 20.0;           // meters
 
